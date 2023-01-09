@@ -2,7 +2,7 @@ p = arcpy.mp.ArcGISProject("CURRENT")
 #directory = p.defaultGeodatabase                 # Directory option 1: Use project directory
 directory = r"H:\DATA\Service\Wietse\GIS\DEM"     # Directory option 2: Custom directory
 
-ToFill = "anh3_hdsr"  # Raster file with gaps to fill
+ToFill = "anh3_hdsr"                              # Raster file with gaps to fill
 Outname = "test2"                                 # Name to save output in chosen directory option
 x = 10                                            # x Search radius
 y = 10                                            # y Search radius
