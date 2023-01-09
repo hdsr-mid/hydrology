@@ -1,0 +1,25 @@
+p = arcpy.mp.ArcGISProject("CURRENT")
+#directory = p.defaultGeodatabase                 # Directory option 1: Use project directory
+directory = r"H:\DATA\Service\Wietse\GIS\DEM"     # Directory option 2: Custom directory
+
+ToFill = "anh3_hdsr"                              # Raster file with gaps to fill
+x = 10                                            # x Search radius
+y = 10                                            # y Search radius
+Statistics_type = "MEAN"                          # Statistics type 
+
+# MEAN—The mean (average value) of the cells in the neighborhood will be calculated.
+# MAJORITY—The majority (value that occurs most often) of the cells in the neighborhood will be identified.
+# MAXIMUM—The maximum (largest value) of the cells in the neighborhood will be identified.
+# MEDIAN—The median of the cells in the neighborhood will be calculated. Median is equivalent to the 50th percentile.
+# MINIMUM—The minimum (smallest value) of the cells in the neighborhood will be identified.
+# MINORITY—The minority (value that occurs least often) of the cells in the neighborhood will be identified.
+# PERCENTILE—A percentile of the cells in the neighborhood will be calculated. The 90th percentile is calculated by default. You can specify other values (from 0 to 100) using the percentile_value parameter.
+# RANGE—The range (difference between largest and smallest value) of the cells in the neighborhood will be calculated.
+# STD—The standard deviation of the cells in the neighborhood will be calculated.
+# SUM—The sum of the cells in the neighborhood will be calculated.
+# VARIETY—The variety (the number of unique values) of the cells in the neighborhood will be calculated.
+
+fillraster = "a.tif"
+fillraster = arcpy.sa.Con(arcpy.sa.IsNull(ToFill),arcpy.sa.FocalStatistics(ToFill,
+                        arcpy.sa.NbrRectangle(x, y),Statistics_type), ToFill)
+fillraster.save(r'H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied')
