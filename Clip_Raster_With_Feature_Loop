@@ -1,0 +1,46 @@
+import arcpy, os
+import numpy as np
+
+arcpy.env.workspace = "H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied" # Where the clip shapefile and input raster are stored
+
+#De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
+clipShapefile  = "H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied\BR_Afvoer_10p.shp"
+
+#De raster die je wilt gebruiken als input (AHN3, AHN4, ect.)
+#Hou rekening met het Talut van de watergangen en neem indien nodig stappen om deze uit de DEM te filteren
+rastername = "H:\DATA\Service\Wietse\GIS\DEM\anh3_hdsr"
+
+##%-------
+
+Percentile_value = 10               #Het Percentiel [0-100] waarboven je alle data wilt omzetten naar nodata
+Raster_Clip      = "Raster_Clip"   #De folder waar de geclipte raster worden opgeslagen
+Raster_Con_Clip  = "STAT_10"       #De folder waar de geclipte rasters met NoData filter worden opgeslagen
+out_name         ="DEM_CLIP_3"
+arcpy.management.CreateFolder(arcpy.env.workspace, out_name)
+outputWorkspace = r"H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied" + '/' + out_name
+
+##%-------
+
+rasterlist = arcpy.ListRasters() #stel een lijst op met alle aanwezige rasters in de workspace
+
+#Deze Functie berekend het percentiel
+def Percentile(rasterlayername,n):            
+    arr = arcpy.RasterToNumPyArray(rasterlayername)
+    Perc = np.percentile(arr,n)
+    return Perc
+
+clipShapes = set()
+with arcpy.da.SearchCursor(clipShapefile, ['OID@']) as cursor:
+    for row in cursor:
+        clipShapes.add(row[0])
+
+for raster in rasterlist:
+    rastername, rasterext = os.path.splitext(raster)
+    for i in clipShapes:
+        newRaster = "{}_clip_{}.tif".format(rastername, i)
+        newRasterPath = os.path.join(outputWorkspace, newRaster)
+        if arcpy.Exists('clipLayer'): # Remove existing 'clipLayer' feature layer if it still exists for some reason
+            arcpy.Delete_management('clipLayer')
+        arcpy.MakeFeatureLayer_management(clipShapefile, 'clipLayer', ' "FID" = {}'.format(i)) #create a layer with only polygon i
+        arcpy.Clip_management(raster, "#", newRasterPath, 'clipLayer', "0", "ClippingGeometry") #clip based on layer, clipping geometry will use the polygon extent only
+        arcpy.Delete_management('clipLayer')
