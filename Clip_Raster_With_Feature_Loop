@@ -7,19 +7,19 @@ import numpy as np
 Dir = 1  # [1, 2 or 3] (Default is 1)
 
 if Dir == 1:
-  p = arcpy.mp.ArcGISProject("CURRENT")
-  directory = p.defaultGeodatabase   
+   p = arcpy.mp.ArcGISProject("CURRENT")
+   directory = p.defaultGeodatabase   
 elif Dir == 2:
-  directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
+   directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
 elif Dir == 3:
-  directory = r"H:\DATA\Service\Wietse\GIS\DEM"
+   directory = r"H:\DATA\Service\Wietse\GIS\DEM"
   
 # De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
 clipShapefile  = "BR_Peilgebieden"
 
 #De raster die je wilt gebruiken als input (AHN3, AHN4, ect.)
 #Hou rekening met het Talut van de watergangen en neem indien nodig stappen om deze uit de DEM te filteren
-rastername = "H:\DATA\Service\Wietse\GIS\DEM\anh3_hdsr"
+rastername = "AHN3_"
 
 ##%-------
 
@@ -28,8 +28,9 @@ Raster_Clip      = "Raster_Clip"   # De folder waar de geclipte raster worden op
 Raster_Con_Clip  = "STAT_10"       # De folder waar de geclipte rasters met NoData filter worden opgeslagen
 out_name         = "DEM_CLIP_3"
 
-arcpy.management.CreateFolder(directory, out_name)
-outputWorkspace = directory + '/' + out_name
+arcpy.management.CreateFolder(directory, Raster_Clip)
+outputWorkspace = directory + '/' + Raster_Clip
+arcpy.env.workspace = outputWorkspace
 
 ##%-------
 
@@ -59,8 +60,9 @@ for raster in rasterlist:
 
 ##%-------
 
-arcpy.env.workspace = outputWorkspace
-outputWorkspace_con = outputWorkspace + "\_" + 
+arcpy.management.CreateFolder(outputWorkspace, Raster_Con_Clip)
+outputWorkspace_con = outputWorkspace + "/" + Raster_Con_Clip
+arcpy.env.workspace = outputWorkspace_con
 
 rasterlist = arcpy.ListRasters('*.tif*') # Get a list of input rasters
 rasterlist
