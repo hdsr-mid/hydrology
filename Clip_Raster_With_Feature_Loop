@@ -1,10 +1,21 @@
 import arcpy, os
 import numpy as np
 
-arcpy.env.workspace = "H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied" # Where the clip shapefile and input raster are stored
+# Directory option 1: Use project gdb
+# Directory option 2: use project directory
+# Directory option 3: Custom directory
+Dir = 1  # [1, 2 or 3] (Default is 1)
 
-#De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
-clipShapefile  = "H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied\BR_Afvoer_10p.shp"
+if Dir == 1:
+  p = arcpy.mp.ArcGISProject("CURRENT")
+  directory = p.defaultGeodatabase   
+elif Dir == 2:
+  directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
+elif Dir == 3:
+  directory = r"H:\DATA\Service\Wietse\GIS\DEM"
+  
+# De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
+clipShapefile  = "BR_Peilgebieden"
 
 #De raster die je wilt gebruiken als input (AHN3, AHN4, ect.)
 #Hou rekening met het Talut van de watergangen en neem indien nodig stappen om deze uit de DEM te filteren
@@ -12,12 +23,13 @@ rastername = "H:\DATA\Service\Wietse\GIS\DEM\anh3_hdsr"
 
 ##%-------
 
-Percentile_value = 10               #Het Percentiel [0-100] waarboven je alle data wilt omzetten naar nodata
-Raster_Clip      = "Raster_Clip"   #De folder waar de geclipte raster worden opgeslagen
-Raster_Con_Clip  = "STAT_10"       #De folder waar de geclipte rasters met NoData filter worden opgeslagen
-out_name         ="DEM_CLIP_3"
-arcpy.management.CreateFolder(arcpy.env.workspace, out_name)
-outputWorkspace = r"H:\DATA\Service\Wietse\ADVIESVRAGEN\Korte projecten\Laagste_delen_per_peilgebied\Laagste_delen_per_peilgebied" + '/' + out_name
+Percentile_value = 10              # Het Percentiel [0-100] waarboven je alle data wilt omzetten naar nodata [Default = 10]
+Raster_Clip      = "Raster_Clip"   # De folder waar de geclipte raster worden opgeslagen
+Raster_Con_Clip  = "STAT_10"       # De folder waar de geclipte rasters met NoData filter worden opgeslagen
+out_name         = "DEM_CLIP_3"
+
+arcpy.management.CreateFolder(directory, out_name)
+outputWorkspace = directory + '/' + out_name
 
 ##%-------
 
@@ -44,3 +56,17 @@ for raster in rasterlist:
         arcpy.MakeFeatureLayer_management(clipShapefile, 'clipLayer', ' "FID" = {}'.format(i)) #create a layer with only polygon i
         arcpy.Clip_management(raster, "#", newRasterPath, 'clipLayer', "0", "ClippingGeometry") #clip based on layer, clipping geometry will use the polygon extent only
         arcpy.Delete_management('clipLayer')
+
+##%-------
+
+arcpy.env.workspace = outputWorkspace
+outputWorkspace_con = outputWorkspace + "\_" + 
+
+rasterlist = arcpy.ListRasters('*.tif*') # Get a list of input rasters
+rasterlist
+
+for raster in rasterlist:
+    Raster_tmp = arcpy.sa.Raster(raster)
+    Perc = Percentile(Raster_tmp,Percentile_value)
+    raster_con = arcpy.sa.SetNull(Raster_tmp > Perc, Raster_tmp)
+    raster_con.save(outputWorkspace_con + '\_' + raster)
