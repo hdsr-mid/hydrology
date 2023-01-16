@@ -1,46 +1,42 @@
 import arcpy, os
 import numpy as np
+from osgeo import gdal
+arcpy.env.addOutputsToMap = False   # Prevents all the clipped rasters to show on the map
+arcpy.env.overwriteOutput = True    # Allows to overwrite the previous raster in the directory
 
 # Directory option 1: Use project gdb
 # Directory option 2: use project directory
 # Directory option 3: Custom directory
-Dir = 1  # [1, 2 or 3] (Default is 1)
+Dir = 2  # [1, 2 or 3] (Default is 1)
 
 if Dir == 1:
-   p = arcpy.mp.ArcGISProject("CURRENT")
-   directory = p.defaultGeodatabase   
+    p = arcpy.mp.ArcGISProject("CURRENT")
+    directory = p.defaultGeodatabase   
 elif Dir == 2:
-   directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
+    directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
 elif Dir == 3:
-   directory = r"H:\DATA\Service\Wietse\GIS\DEM"
-  
-# De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
-clipShapefile  = "BR_Peilgebieden"
+    directory = r"H:\DATA\Service\Wietse\GIS\DEM"
+
+    
+#De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
+clipShapefile  = "BR_Afvoer_10p"
 
 #De raster die je wilt gebruiken als input (AHN3, AHN4, ect.)
 #Hou rekening met het Talut van de watergangen en neem indien nodig stappen om deze uit de DEM te filteren
-rastername = "AHN3_"
+rasterlist = ["AHN3_HDSR_FILL_ISV_NO.TIF"]
 
 ##%-------
 
 Percentile_value = 10              # Het Percentiel [0-100] waarboven je alle data wilt omzetten naar nodata [Default = 10]
-Raster_Clip      = "Raster_Clip"   # De folder waar de geclipte raster worden opgeslagen
+Raster_Clip      = "Afvoergebieden_16012023_2"   # De folder waar de geclipte raster worden opgeslagen
 Raster_Con_Clip  = "STAT_10"       # De folder waar de geclipte rasters met NoData filter worden opgeslagen
-out_name         = "DEM_CLIP_3"
 
 arcpy.management.CreateFolder(directory, Raster_Clip)
-outputWorkspace = directory + '/' + Raster_Clip
+outputWorkspace = directory 
 arcpy.env.workspace = outputWorkspace
+outputWorkspace_clip = os.path.join(outputWorkspace, Raster_Clip)
 
 ##%-------
-
-rasterlist = arcpy.ListRasters() #stel een lijst op met alle aanwezige rasters in de workspace
-
-#Deze Functie berekend het percentiel
-def Percentile(rasterlayername,n):            
-    arr = arcpy.RasterToNumPyArray(rasterlayername)
-    Perc = np.percentile(arr,n)
-    return Perc
 
 clipShapes = set()
 with arcpy.da.SearchCursor(clipShapefile, ['OID@']) as cursor:
@@ -51,24 +47,34 @@ for raster in rasterlist:
     rastername, rasterext = os.path.splitext(raster)
     for i in clipShapes:
         newRaster = "{}_clip_{}.tif".format(rastername, i)
-        newRasterPath = os.path.join(outputWorkspace, newRaster)
+        newRasterPath = os.path.join(outputWorkspace_clip, newRaster)
         if arcpy.Exists('clipLayer'): # Remove existing 'clipLayer' feature layer if it still exists for some reason
             arcpy.Delete_management('clipLayer')
         arcpy.MakeFeatureLayer_management(clipShapefile, 'clipLayer', ' "FID" = {}'.format(i)) #create a layer with only polygon i
-        arcpy.Clip_management(raster, "#", newRasterPath, 'clipLayer', "0", "ClippingGeometry") #clip based on layer, clipping geometry will use the polygon extent only
+        arcpy.Clip_management(raster, "#", newRasterPath, 'clipLayer', "np.nan", "ClippingGeometry") #clip based on layer, clipping geometry will use the polygon extent only
         arcpy.Delete_management('clipLayer')
-
 ##%-------
 
-arcpy.management.CreateFolder(outputWorkspace, Raster_Con_Clip)
-outputWorkspace_con = outputWorkspace + "/" + Raster_Con_Clip
-arcpy.env.workspace = outputWorkspace_con
+#Deze Functie berekend het percentiel
+def Percentile(rasterlayername,n,folder):  
+    newRasterPath = os.path.join(folder, rasterlayername)
+    ds = gdal.Open(newRasterPath)
+    band = ds.GetRasterBand(1)
+    arr = np.array(band.ReadAsArray())
+    Perc = np.nanpercentile(arr,n)
+    return Perc
+
+
+arcpy.env.workspace = outputWorkspace_clip
+arcpy.management.CreateFolder(outputWorkspace_clip, Raster_Con_Clip)
+outputWorkspace_con = os.path.join(outputWorkspace_clip,Raster_Con_Clip) 
 
 rasterlist = arcpy.ListRasters('*.tif*') # Get a list of input rasters
-rasterlist
 
 for raster in rasterlist:
     Raster_tmp = arcpy.sa.Raster(raster)
-    Perc = Percentile(Raster_tmp,Percentile_value)
+    Perc = Percentile(raster_tmp,Percentile_value,outputWorkspace_clip)
     raster_con = arcpy.sa.SetNull(Raster_tmp > Perc, Raster_tmp)
-    raster_con.save(outputWorkspace_con + '\_' + raster)
+    raster_con.save(outputWorkspace_con + '\_con' + raster)
+    del raster_con
+    
