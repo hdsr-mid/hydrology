@@ -15,7 +15,7 @@ if Dir == 1:
 elif Dir == 2:
     directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
 elif Dir == 3:
-    directory = r"H:\DATA\Service\Wietse\GIS\DEM"
+    directory = r"CUSTOM DIRECTORY"
 
     
 #De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
