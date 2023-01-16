@@ -57,8 +57,8 @@ for raster in rasterlist:
 
 #Deze Functie berekend het percentiel
 def Percentile(rasterlayername,n,folder):  
-    newRasterPath = os.path.join(folder, rasterlayername)
-    ds = gdal.Open(newRasterPath)
+    PerRasterPath = os.path.join(folder, rasterlayername)
+    ds = gdal.Open(PerRasterPath)
     band = ds.GetRasterBand(1)
     arr = np.array(band.ReadAsArray())
     Perc = np.nanpercentile(arr,n)
