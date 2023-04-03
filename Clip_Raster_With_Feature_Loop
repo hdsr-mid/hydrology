@@ -1,8 +1,8 @@
 import arcpy, os
 import numpy as np
 from osgeo import gdal
-arcpy.env.addOutputsToMap = False   # Prevents all the clipped rasters to show on the map
-arcpy.env.overwriteOutput = True    # Allows to overwrite the previous raster in the directory
+arcpy.env.addOutputsToMap = False   # Prevents many small grid files to show on map
+arcpy.env.overwriteOutput = True
 
 # Directory option 1: Use project gdb
 # Directory option 2: use project directory
@@ -15,7 +15,7 @@ if Dir == 1:
 elif Dir == 2:
     directory = os.path.dirname( arcpy.mp.ArcGISProject("CURRENT").filePath )
 elif Dir == 3:
-    directory = r"CUSTOM DIRECTORY"
+    directory = r"H:\DATA\Service\Wietse\GIS\DEM"
 
     
 #De Shapefile die je wilt gebruiken voor het opknippen van de raster (BR_Peilgebieden, BR_Afvoergebieden, ect.)
@@ -25,18 +25,18 @@ clipShapefile  = "BR_Afvoer_10p"
 #Hou rekening met het Talut van de watergangen en neem indien nodig stappen om deze uit de DEM te filteren
 rasterlist = ["AHN3_HDSR_FILL_ISV_NO.TIF"]
 
-##%-------
+##%--------------
 
-Percentile_value = 10              # Het Percentiel [0-100] waarboven je alle data wilt omzetten naar nodata [Default = 10]
-Raster_Clip      = "Afvoergebieden_16012023_2"   # De folder waar de geclipte raster worden opgeslagen
-Raster_Con_Clip  = "STAT_10"       # De folder waar de geclipte rasters met NoData filter worden opgeslagen
+Percentile_value = 20              # Het Percentiel [0-100] waarboven je alle data wilt omzetten naar nodata [Default = 10]
+Raster_Clip      = "BR_Afvoergebieden_19012023_3"   # De folder waar de geclipte raster worden opgeslagen
+Raster_Con_Clip  = "STAT_20"       # De folder waar de geclipte rasters met NoData filter worden opgeslagen
 
 arcpy.management.CreateFolder(directory, Raster_Clip)
 outputWorkspace = directory 
 arcpy.env.workspace = outputWorkspace
 outputWorkspace_clip = os.path.join(outputWorkspace, Raster_Clip)
 
-##%-------
+##%--------------
 
 clipShapes = set()
 with arcpy.da.SearchCursor(clipShapefile, ['OID@']) as cursor:
@@ -51,17 +51,20 @@ for raster in rasterlist:
         if arcpy.Exists('clipLayer'): # Remove existing 'clipLayer' feature layer if it still exists for some reason
             arcpy.Delete_management('clipLayer')
         arcpy.MakeFeatureLayer_management(clipShapefile, 'clipLayer', ' "FID" = {}'.format(i)) #create a layer with only polygon i
-        arcpy.Clip_management(raster, "#", newRasterPath, 'clipLayer', "np.nan", "ClippingGeometry") #clip based on layer, clipping geometry will use the polygon extent only
+        arcpy.Clip_management(raster, "#", newRasterPath, 'clipLayer', "99", "ClippingGeometry") #clip based on layer, clipping geometry will use the polygon extent only
         arcpy.Delete_management('clipLayer')
-##%-------
+        
+##%--------------     
 
 #Deze Functie berekend het percentiel
-def Percentile(rasterlayername,n,folder):  
-    PerRasterPath = os.path.join(folder, rasterlayername)
-    ds = gdal.Open(PerRasterPath)
+def Percentile(rasterlayername,n,folder,dt = "f4"):  
+    newRasterPath = os.path.join(folder, rasterlayername)
+    ds = gdal.Open(newRasterPath)
     band = ds.GetRasterBand(1)
-    arr = np.array(band.ReadAsArray())
+    arr = np.array(band.ReadAsArray(), dtype= dt)
+    arr[arr==99] = np.nan
     Perc = np.nanpercentile(arr,n)
+    
     return Perc
 
 
@@ -72,9 +75,17 @@ outputWorkspace_con = os.path.join(outputWorkspace_clip,Raster_Con_Clip)
 rasterlist = arcpy.ListRasters('*.tif*') # Get a list of input rasters
 
 for raster in rasterlist:
-    Raster_tmp = arcpy.sa.Raster(raster)
-    Perc = Percentile(raster_tmp,Percentile_value,outputWorkspace_clip)
-    raster_con = arcpy.sa.SetNull(Raster_tmp > Perc, Raster_tmp)
-    raster_con.save(outputWorkspace_con + '\_con' + raster)
-    del raster_con
+    try:
+        Raster_tmp = arcpy.sa.Raster(raster)
+        Perc = Percentile(raster,Percentile_value,outputWorkspace_clip)
+        raster_con = arcpy.sa.SetNull(Raster_tmp > Perc, Raster_tmp)
+        raster_con.save(outputWorkspace_con + '\_con' + raster)
+        del raster_con
+    except MemoryError:
+        print(raster + " is too big")
+        continue
+    except:
+        print(raster + " something else went wrong")
+        continue
+        
     
