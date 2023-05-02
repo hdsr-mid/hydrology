@@ -1,2 +1,2 @@
 # hydrology
-A collection of scripts that can be copy-pasted into ArcGis
+A collection of scripts use by the Hydrology team
