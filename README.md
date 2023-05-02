@@ -1,2 +1,2 @@
 # hydrology
-A collection of scripts use by the Hydrology team
+A collection of scripts used by the Hydrology team of HDSR
