@@ -1,0 +1,21 @@
+name: Petra_arcpy
+channels:
+  - conda-forge
+  - default
+dependencies:
+  - python
+  - pip
+  - scikit-learn
+  - contextily
+  - geopandas
+  - rasterio
+  - jupyter
+  - numpy
+  - scipy
+  - shapely
+  - pandas
+  - matplotlib
+  - rasterstats
+  - tqdm
+  - rioxarray
+  
