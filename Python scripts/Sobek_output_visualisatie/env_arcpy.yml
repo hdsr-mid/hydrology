@@ -1,0 +1,21 @@
+name: env_arcpy
+channels:
+  - conda-forge
+  - default
+dependencies:
+  - python
+  - pip
+  - scikit-learn
+  - contextily
+  - geopandas
+  - rasterio
+  - jupyterlab
+  - numpy
+  - scipy
+  - shapely
+  - pandas
+  - matplotlib
+  - rasterstats
+  - tqdm
+  - rioxarray
+  

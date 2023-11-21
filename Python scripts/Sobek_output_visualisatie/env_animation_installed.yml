@@ -1,0 +1,5 @@
+name: G:\Python3-env\env_animation
+channels:
+  - conda-forge
+  - defaults
+prefix: G:\Python3-env\env_animation
