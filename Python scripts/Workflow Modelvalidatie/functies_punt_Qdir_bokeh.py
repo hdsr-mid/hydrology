@@ -73,10 +73,9 @@ def fun_create_dict(shp_points, sub_data, df_data_Q):
     
     return src_dict
 
-def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q, metric, vmin, vmax):    
+def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q):    
     # -----------------------------------------------
     # Get data
-    shp_points = shp_points[shp_points[metric].replace(np.nan,-999)!=-999]
     shp_points = shp_points.drop('geometry', axis=1).copy()
     shp_points['FID'] = shp_points.reset_index().index.values.astype(str)
     geo_source = GeoJSONDataSource(geojson=shp_afvoer.to_json())
@@ -86,42 +85,21 @@ def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q, metric, vmin, vmax)
     
     # -----------------------------------------------
     # Plot map: with points
-    metric_abs    = abs(shp_points[metric])
-    metric_norm   = metric_abs/np.max(metric_abs)
-    if metric == 'dQ': 
-        shp_points['msize'] = np.where(abs(shp_points[metric])<0.01, 5, 5+metric_norm *20)     
-    else:
-        shp_points['msize'] = 10
-    
-    p1 = figure(title='Debiet tijd series: Sobek vs. FEWS-WIS [m3/s]', height=350, width=820)
+    p1 = figure(title='Stroomrichting: Sobek vs. FEWS-WIS [m3/s]', height=350, width=820)
     p1.patches(fill_alpha=1,fill_color='white',line_color='black', line_width=0.5, source=geo_source)
     map_source = ColumnDataSource(shp_points)    
-    color = LinearColorMapper(palette = 'Turbo256', low = vmin, high = vmax)
-    map_points = p1.scatter('X', 'Y', source=map_source,color=transform(metric, color), size='msize')
-    color_bar = ColorBar(color_mapper=color,title=metric)
-    p1.add_layout(color_bar, 'right')
-    tooltips = [('ID', '@IRIS_ID'),
-                ('Value', '@'+metric)]
+    map_points = p1.scatter('X', 'Y', source=map_source,color='red', size=10)
+    tooltips = [('ID', '@IRIS_ID')]
     hover = HoverTool(renderers=[map_points], tooltips=tooltips) 
     p1.add_tools(hover)  
     
-    # -----------------------------------------------
-    # Plot map: without points
-    p2 = figure(title='Op basis van maximale absolute waarde per afvoergebied...', height=350, width=700)
-    map_poly = p2.patches(fill_alpha=1,
-              fill_color={'field': metric, 'transform': color},
-              line_color='black', line_width=0.5, source=geo_source)
-    tooltips = [('Code', '@NAAM'),
-                ('Label', '@'+metric)]
-    hover = HoverTool(renderers=[map_poly], tooltips=tooltips) 
-    p2.add_tools(hover)  
         
     # -----------------------------------------------
     # Tapping...
     #start with initial state for columndatasource
     ID_0  = shp_points.iloc[0]['FID']
     src   = ColumnDataSource(data=src_dict[ID_0])
-    p3    = figure(title='Gemaal ' +  shp_points.iloc[0]['IRIS_ID'], height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
+    p3    = figure(title='Gemaal ' +  str(shp_points.iloc[0]['IRIS_ID']), height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
     glyph = MultiLine(xs="t_MOD", ys="MOD", line_color="red")
     p3.add_glyph(src, glyph)
     glyph = MultiLine(xs="t_OBS", ys="OBS", line_color="black")
@@ -146,6 +124,6 @@ def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q, metric, vmin, vmax)
     #apply this callback to trigger whenever the indices of the selected glyph change
     map_source.selected.js_on_change('indices',cb)             
     
-    grid = layout([[p1, p2],[p3,],])
-    save(grid,paths.fightml.replace('.html','_' + metric + '.html'))
+    grid = layout([[p1],[p3],])
+    save(grid,paths.fightml)
     

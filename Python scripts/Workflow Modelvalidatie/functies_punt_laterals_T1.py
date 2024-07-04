@@ -31,7 +31,7 @@ def png(paths,shp_afwatr,shp_afvoer,shp_comp):
     plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.1, hspace=0.9)
     
     ax = plt.subplot2grid((1, 1), (0, 0), rowspan = 2)
-    shp_afwatr.plot(ax=ax, column = 'dQ', vmin = -0.1, vmax = 0.1, markersize=msize, cmap = 'jet', edgecolor='face', linewidth=0, alpha = 0.5, legend=True, legend_kwds={"label": "Verschil: Sobek - HYDROMEDAH [m3/s]"})
+    shp_afwatr.plot(ax=ax, column = 'dQ', vmin = -0.1, vmax = 0.1, markersize=msize, cmap = 'jet', edgecolor='face', linewidth=0, alpha = 1, legend=True, legend_kwds={"label": "Verschil: Sobek - HYDROMEDAH [m3/s]"})
     # shp_comp.plot(ax=ax, column = 'dQ', vmin = -0.1, vmax = 0.1, markersize=msize, cmap = 'jet', legend=True, legend_kwds={"label": "Verschil: Sobek - HYDROMEDAH [m3/s]"})
     shp_afvoer.plot(ax=ax, color= "none", facecolor = "none", edgecolor='black')
     plt.xlim([109000,170000])
@@ -56,9 +56,9 @@ def bokeh(paths, shp_afvoer, shp_afwatr):
     # -----------------------------------------------
     # Plot map
     
-    p1 = figure(title='Sobek vs. Hydromedah laterals T=1 [m3/s]: ' + metric, height=350, width=820)
+    p1 = figure(title='Afvoer (laterals) T=1 zomer: RUPROF input vs. Hydromedah [m3/s]', height=350, width=820)
     color = LinearColorMapper(palette = 'Turbo256', low = vmin, high = vmax)
-    map_poly  = p1.patches(fill_alpha=0.4,
+    map_poly  = p1.patches(fill_alpha=1,
               fill_color={'field': metric, 'transform': color},
               line_color='black', line_width=0.5, source=map_source)
     color_bar = ColorBar(color_mapper=color,title=metric)
@@ -176,9 +176,9 @@ def main(paths, months, years):
     if len(ind)>0: 
         print('Check file for nodes with distance > 0.01 m! : ')
         print(paths.shp_HYDROMEDAH)
-        shp_HYDROMEDAH.to_file(paths.shp_HYDROMEDAH)
+    shp_HYDROMEDAH.to_file(paths.shp_HYDROMEDAH)
     
-    # '''RUPROF'''    
+    '''RUPROF'''    
     # RUPROF lateral data inlezen
     df_Qlat = lat_data(paths)
     
@@ -197,6 +197,7 @@ def main(paths, months, years):
     
     # save file    
     shp_comp.rename(columns ={'ID':'lat_ID'}).to_file(paths.shp_laterals)    
+    shp_RUPROF.to_file(paths.shp_RUPROF)   
     
     # add values to shapefile
     shp_comp['CODE'] = [i.replace('drain','') for i in shp_comp.ID.values]

@@ -45,7 +45,7 @@ def png(paths,gdf_joined,shp_afvoer):
     
     ax = plt.subplot2grid((2, 1), (1, 0))
     plt.title('Op basis van maximale absolute waarde per afvoergebied...')
-    shp_afvoer.plot(ax=ax, column = 'dWL', vmin = -1, vmax = 1, cmap = 'jet', edgecolor='black', linewidth=0.1, alpha = 0.5, legend=True, legend_kwds={"label": "Maximum absoluut verschil: Sobek - HYDROMEDAH [m3/s]"})
+    shp_afvoer.plot(ax=ax, column = 'dWL', vmin = -1, vmax = 1, cmap = 'jet', edgecolor='black', linewidth=0.1, alpha = 1, legend=True, legend_kwds={"label": "Maximum absoluut verschil: Sobek - HYDROMEDAH [m3/s]"})
     shp_afvoer.plot(ax=ax, color= "none", facecolor = "none", edgecolor='black')
     plt.xlim([109000,170000])
     plt.ylim([438000,468000])
@@ -73,8 +73,8 @@ def bokeh(paths, shp_afvoer, shp_points):
     shp_points['msize'] = np.where(abs(shp_points[metric])<0.05, 0.05, 1+metric_norm *20)     
     shp_points    = shp_points.rename(columns ={'X_left':'X','Y_left':'Y'})
     
-    p1 = figure(title='Sobek vs. FEWS_WIS debiet data [m]: ' + metric, height=350, width=820)
-    p1.patches(fill_alpha=0.7,fill_color='white',line_color='black', line_width=0.5, source=geo_source)
+    p1 = figure(title='Waterniveau T=1 zomer: RUPROF vs. FEWS-WIS [m]', height=350, width=820)
+    p1.patches(fill_alpha=1,fill_color='white',line_color='black', line_width=0.5, source=geo_source)
     map_source = ColumnDataSource(shp_points)    
     color = LinearColorMapper(palette = 'Turbo256', low = vmin, high = vmax)
     map_points = p1.scatter('X', 'Y', source=map_source,color=transform(metric, color), size='msize')
@@ -88,7 +88,7 @@ def bokeh(paths, shp_afvoer, shp_points):
     # -----------------------------------------------
     # Plot map: without points
     p2 = figure(title='Op basis van maximale absolute waarde per afvoergebied...', height=350, width=700)
-    map_poly = p2.patches(fill_alpha=0.7,
+    map_poly = p2.patches(fill_alpha=1,
               fill_color={'field': metric, 'transform': color},
               line_color='black', line_width=0.5, source=geo_source)
     tooltips = [('Code', '@NAAM'),

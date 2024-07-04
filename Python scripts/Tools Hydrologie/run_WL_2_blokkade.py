@@ -47,6 +47,7 @@ class paths():
     shp_blok         = os.path.join(root, 'Output','temp','water_blokkade.shp') 
     
     # Output files
+    tif_out          = os.path.join(root, 'Output','inundationdepth.tif') 
     shp_out          = os.path.join(root, 'Output','water_blokkade.shp') 
 
 def fun_remove_shp(shp_path):
@@ -170,7 +171,7 @@ def fun_inundation_p2(polygon, shp_insteek):
     else:
         data = raster.read(1) * 0
         
-    with rasterio.open(paths.raster_inun, 'w', **out_meta) as dest:
+    with rasterio.open(paths.raster_inun.replace('.tif',f"_{idx}.tif"), 'w', **out_meta) as dest:
         dest.write(data,indexes=1)
     raster.close()
     del raster
@@ -184,7 +185,7 @@ def fun_inundation_p2(polygon, shp_insteek):
     
 def fun_blokkade(idx):
     # Identify blokkage
-    raster   = gdal.Open(paths.raster_inun)
+    raster   = gdal.Open(paths.raster_inun.replace('.tif',f"_{idx}.tif"))
     band     = raster.GetRasterBand(1)
     arr      = band.ReadAsArray()
     arr      = np.where(arr> threshold, 1, 0)
@@ -204,7 +205,6 @@ def fun_blokkade(idx):
     del raster
     
     # remove file
-    os.remove(paths.raster_inun)
     os.remove(paths.raster_binary)
     
 def fun_merge_shp(shp_file, polygons):
@@ -217,6 +217,21 @@ def fun_merge_shp(shp_file, polygons):
     # Remove files
     for idx in range(0,len(polygons)): 
         fun_remove_shp(shp_file.replace('.shp',f"_{idx}.shp"))
+    
+def fun_merge_tif(tif_file, polygons):
+    # Merge files
+    tif_files      = [tif_file.replace('.tif',f"_{idx}.tif") for idx, polygon in polygons.iterrows()]
+    tif, out_trans = merge(tif_files)
+    src            = rasterio.open(tif_files[0])
+    out_meta       = src.meta.copy()
+    out_meta.update({"driver": "GTiff","height": tif.shape[1],"width": tif.shape[2],"transform": out_trans,})
+    with rasterio.open(paths.tif_out, "w", **out_meta) as dest:
+        dest.write(tif)
+    src.close()
+    
+    # Remove files
+    for idx in range(0,len(polygons)): 
+        os.remove(tif_file.replace('.tif',f"_{idx}.tif"))    
     
 if __name__ == "__main__":
     # Load data
@@ -251,5 +266,5 @@ if __name__ == "__main__":
         
     # Merge files
     fun_merge_shp(paths.shp_blok, polygons)
-    
+    fun_merge_tif(paths.raster_inun, polygons)
     

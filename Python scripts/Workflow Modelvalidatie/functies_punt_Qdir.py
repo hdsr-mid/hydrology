@@ -19,7 +19,7 @@ import warnings
 from shapely.geometry import Point
 from pathlib import Path
 import hkvsobekpy as hkv
-import functies_punt_Qseries_bokeh
+import functies_punt_Qdir_bokeh
 warnings.filterwarnings("ignore")
 
 def add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data):
@@ -38,19 +38,15 @@ def add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data):
         MOD  = df_sel[ID_model].values
         MOD  = MOD[np.isnan(OBS)==0]
         OBS  = OBS[np.isnan(OBS)==0]
-        if len(OBS) > 0:
-        # if len(OBS)/len(df_model) > 0.75:
-            RMSE = np.sqrt(np.sum((OBS - MOD)**2)/len(OBS))
-            NS   = 1 - np.sum((OBS-MOD)**2)/np.sum((OBS-np.mean(OBS))**2)
-            if np.isinf(NS): NS = np.nan
-            
-            gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'NS']     = np.round(NS,2)
-            gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'RMSE']   = np.round(RMSE,2)
-            gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'dQ_MOD'] = np.round(np.nanmean(MOD),2)
-            gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'dQ_OBS'] = np.round(np.nanmean(OBS),2)
-     
-            gdf_joined['dQ'] = gdf_joined['dQ_MOD'] - gdf_joined['dQ_OBS']
-            gdf_joined['dQ'] = np.where((gdf_joined['dQ_MOD'] == -999) | (gdf_joined['dQ_OBS'] == -999), -999, gdf_joined['dQ'])        
+        if len(OBS) > 0:        
+            OBSdir = np.unique(np.where(OBS>=0, 1, -1))            
+            if len(OBSdir)==1:
+                gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 0
+            else:
+                gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 1
+        else:
+            gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 0
+      
     return gdf_joined
 
 def custom_resampler(arraylike):
@@ -67,7 +63,7 @@ def node_2_poly(metric,gdf_joined,shp_afvoer):
      return shp_afvoer   
 
 
-def main(paths, months, years):
+def main(paths, months, years):    
     ''''FEWS-WIS data'''
     # Input data
     df_sites_Q = pd.read_csv(paths.df_Q_WISsites)    
@@ -75,6 +71,7 @@ def main(paths, months, years):
     df_data_Q  = pd.read_csv(paths.df_Q_WISdata, delimiter=',',low_memory=False)
     df_data_Q  = df_data_Q.rename(columns={"Unnamed: 0": "time"}).drop(0)
     df_data_Q  = df_data_Q.astype({'time':'datetime64[ns]'})    
+    df_data_Q  = df_data_Q.set_index('time').astype('float').replace(-999,np.nan).reset_index()
     df_data_Q  = df_data_Q.set_index('time').astype('float').replace(-999,np.nan).reset_index()
     df_data_Q['MONTH'] = np.array([pd.to_datetime(t).month for t in df_data_Q.time.values])
     df_data_Q['YEAR'] = np.array([pd.to_datetime(t).year for t in df_data_Q.time.values])
@@ -130,44 +127,9 @@ def main(paths, months, years):
     # Estimate performance metric
     gdf_joined = gpd.sjoin_nearest(gdf_data, gdf_model, distance_col="distances")
     gdf_joined = add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data)
-       
-    # Save file
-    gdf_joined.to_file(paths.gdf_joined)
+    gdf_joined = gdf_joined.loc[gdf_joined['Qdir']==1]
     
     # Kaart plotten
-    metrics    = ['dQ']#,'NS','RMSE']
-    vmin       = -1
-    vmax       = 1
-    for metric in metrics:
-        shp_afvoer_joined    = node_2_poly(metric,gdf_joined,shp_afvoer)
-        
-        metric_abs    = abs(gdf_joined[metric])
-        metric_norm   = metric_abs/np.max(metric_abs)
-        msize = np.where(abs(gdf_joined[metric])<0.01, 5, 5+metric_norm *50)     
-        
-        plt.figure(figsize=(10,10))
-        plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.1, hspace=0.1)
-        
-        ax = plt.subplot2grid((2, 1), (0, 0))
-        plt.title("Sobek vs. FEWS_WIS debiet data [m3/s]")
-        shp_afvoer.plot(ax=ax, color='white', edgecolor='black')
-        gdf_joined.plot(ax=ax, column = metric, vmin = vmin, vmax = vmax, markersize=msize, cmap = 'turbo', legend=True, legend_kwds={"label": metric})
-        plt.xlim([109000,170000])
-        plt.ylim([438000,468000])
-        plt.grid()
-        
-        ax = plt.subplot2grid((2, 1), (1, 0))
-        plt.title('Op basis van maximale absolute waarde per afvoergebied...')
-        shp_afvoer_joined.plot(ax=ax, column = metric, vmin = vmin, vmax = vmax, cmap = 'turbo', edgecolor='black', linewidth=0.1, alpha = 0.5, legend=True, legend_kwds={"label": "Sobek vs. HYDROMEDAH [m3/s]"})
-        shp_afvoer.plot(ax=ax, color= "none", facecolor = "none", edgecolor='black')
-        plt.xlim([109000,170000])
-        plt.ylim([438000,468000])
-        plt.grid()
-        
-        plt.savefig(paths.fig.replace('.png','_' + metric + '.png'), dpi=300)
-        if 'dQ' in metric: plt.show()
-        plt.close()
-               
-        functies_punt_Qseries_bokeh.main(paths, shp_afvoer_joined, gdf_joined, sub_data, df_data_Q, metric, vmin, vmax)
+    functies_punt_Qdir_bokeh.main(paths, shp_afvoer, gdf_joined, sub_data, df_data_Q)
         
         
