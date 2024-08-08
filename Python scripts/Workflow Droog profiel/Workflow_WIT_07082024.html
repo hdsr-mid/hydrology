@@ -3,7 +3,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Workflow_WIT</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>Workflow_WIT_07082024</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -7620,12 +7620,7 @@ A29    : droog profiel, einde  <br/></p>
     <span class="n">output</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="s1">'Output'</span><span class="p">)</span>
     
     <span class="c1"># Input</span>
-    <span class="c1"># txt_profielen  = os.path.join(root,'Input','Profielen_Haarzicht.txt')</span>
-    <span class="c1"># txt_profielen_temp  = os.path.join(root,'Input','20240124_Tyhuis_meting_samengevoegd.txt')</span>
-    <span class="c1"># txt_profielen       = os.path.join(root,'Input','20240124_Tyhuis_meting_samengevoegd_edited.txt')</span>
-    <span class="c1"># shp_profielen_nat   = os.path.join(output,'profielen_nat.shp')</span>
     <span class="n">shp_insteek</span>         <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="s1">'GIS_input'</span><span class="p">,</span><span class="s1">'BR-VS_Insteekvlak.shp'</span><span class="p">)</span>
-    <span class="c1">#shp_insteek         = os.path.join(root,'GIS_input','Oppervlaktewaterkartering_insteek.shp')    </span>
     <span class="n">shp_water</span>           <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="s1">'GIS_input'</span><span class="p">,</span><span class="s1">'BR_VS_Watervlak.shp'</span><span class="p">)</span>
     <span class="n">shp_HO</span>              <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="s1">'GIS_input'</span><span class="p">,</span><span class="s1">'BR_VS_HydroObject.shp'</span><span class="p">)</span>
     <span class="n">tif_AHN</span>             <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="s1">'GIS_input'</span><span class="p">,</span><span class="s1">'AHN4 grondfilter.tif'</span><span class="p">)</span>
@@ -7735,8 +7730,8 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>1532  of  13376  profiles are dropped because they are not located in primary waterways. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
-267  of  11844  profiles are dropped because their min distance from the waterway is more than 1 m. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
+<pre>1532  of  13376  profiles are dropped because they are not located in primary waterways. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
+267  of  11844  profiles are dropped because their min distance from the waterway is more than 1 m. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
 </pre>
 </div>
 </div>
@@ -7784,8 +7779,8 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>1  of  11577  profiles are dropped because the code A22L or A22R is missing. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
-1  of  11576  profiles are dropped because the codes A22L and A22R have the same coordinates. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
+<pre>1  of  11577  profiles are dropped because the code A22L or A22R is missing. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
+1  of  11576  profiles are dropped because the codes A22L and A22R have the same coordinates. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
 </pre>
 </div>
 </div>
@@ -7843,7 +7838,7 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|████████████████████████████████████████████████████████████████████████████| 11575/11575 [02:17&lt;00:00, 84.30it/s]
+<pre>100%|████████████████████████████████████████████████████████████████████████████| 11575/11575 [03:28&lt;00:00, 55.46it/s]
 </pre>
 </div>
 </div>
@@ -7887,7 +7882,7 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|███████████████████████████████████████████████████████████████████████████| 11575/11575 [01:13&lt;00:00, 157.96it/s]
+<pre>100%|████████████████████████████████████████████████████████████████████████████| 11575/11575 [02:06&lt;00:00, 91.17it/s]
 </pre>
 </div>
 </div>
@@ -7965,7 +7960,7 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|██████████████████████████████████████████████████████████████████████████| 11572/11572 [00:03&lt;00:00, 3612.40it/s]
+<pre>100%|██████████████████████████████████████████████████████████████████████████| 11572/11572 [00:04&lt;00:00, 2456.48it/s]
 </pre>
 </div>
 </div>
@@ -8048,24 +8043,15 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>20  of  11575  profiles are dropped because it is not located in the insteekvlak. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
-1006  of  11555  profiles are dropped because the wet profile is shifted such that A24/A28 are not at the edges anymore. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
+<pre>20  of  11575  profiles are dropped because it is not located in the insteekvlak. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
+2258  of  11555  profiles are dropped because the wet profile is shifted such that A24/A28 are not at the edges anymore. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|████████████████████████████████████████████████████████████████████████████| 10549/10549 [09:54&lt;00:00, 17.75it/s]
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>5 Index(['profielmet', 'HO_ID', 'HO_afstd', 'HO_cat', 'AHN', 'geometry', 'X',
-       'Y', 'punttype', 'afstand', 'slibhoogte', 'profiel'],
-      dtype='object')
+<pre>100%|██████████████████████████████████████████████████████████████████████████████| 9297/9297 [11:04&lt;00:00, 14.00it/s]
 </pre>
 </div>
 </div>
@@ -8108,7 +8094,7 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|██████████████████████████████████████████████████████████████████████████| 10549/10549 [4:50:58&lt;00:00,  1.66s/it]
+<pre>100%|████████████████████████████████████████████████████████████████████████████| 9297/9297 [6:13:56&lt;00:00,  2.41s/it]
 </pre>
 </div>
 </div>
@@ -8154,16 +8140,16 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|████████████████████████████████████████████████████████████████████████████| 10549/10549 [19:25&lt;00:00,  9.05it/s]
+<pre>100%|██████████████████████████████████████████████████████████████████████████████| 9297/9297 [15:49&lt;00:00,  9.80it/s]
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>491  of  10549  profiles are dropped because of missing AHN data at A24 or A28. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
-416  of  10058  profiles are dropped because of AHN data at A24/A28 is lower than at A22L/A22R. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
-80  of  9642  profiles are dropped because the minimum height is below -10 m NAP. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
+<pre>385  of  9297  profiles are dropped because of missing AHN data at A24 or A28. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
+280  of  8912  profiles are dropped because of AHN data at A24/A28 is lower than at A22L/A22R. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
+81  of  8632  profiles are dropped because the minimum height is below -10 m NAP. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
 </pre>
 </div>
 </div>
@@ -8206,8 +8192,9 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>68330  of  72256  hydro objects have no profile.
-4505  of  8431  primary hydro objects have no profile. Check  D:\DroogProfiel\Output\error.txt  for the ID codes.
+<pre>68630  of  72256  hydro objects have no profile.
+4805  of  8431  primary hydro objects have no profile. Check  D:\Users\Petra\DroogProfiel\Output\error.txt  for the ID codes.
+3544  primary hydro objects are shorter than 100 m.
 </pre>
 </div>
 </div>
@@ -8273,7 +8260,7 @@ A29    : droog profiel, einde  <br/></p>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Code running time:  0:00:06.398804  hours
+<pre>Code running time:  0:00:08.050172  hours
 </pre>
 </div>
 </div>

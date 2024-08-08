@@ -343,10 +343,10 @@ def merge_shapefiles(paths):
     Y_insteek = gdf1.groupby('profielmet').agg({'Y': ['min', 'max']}).reset_index()
     X_nat     = gdf2.groupby('profielmet').agg({'X': ['min', 'max']}).reset_index()
     Y_nat     = gdf2.groupby('profielmet').agg({'Y': ['min', 'max']}).reset_index()
-    ind_drop = np.where((np.round(X_insteek['X']['max'].values) < np.round(X_nat['X']['max'].values)) | 
-             (np.round(X_insteek['X']['min'].values) > np.round(X_nat['X']['min'].values)) |
-             (np.round(Y_insteek['Y']['max'].values) < np.round(Y_nat['Y']['max'].values)) |
-             (np.round(Y_insteek['Y']['min'].values) > np.round(Y_nat['Y']['min'].values))
+    ind_drop = np.where((np.round(X_insteek['X']['max'].values,2) < np.round(X_nat['X']['max'].values,2)) | 
+             (np.round(X_insteek['X']['min'].values,2) > np.round(X_nat['X']['min'].values,2)) |
+             (np.round(Y_insteek['Y']['max'].values,2) < np.round(Y_nat['Y']['max'].values,2)) |
+             (np.round(Y_insteek['Y']['min'].values,2) > np.round(Y_nat['Y']['min'].values,2))
              )
     names = X_insteek.iloc[ind_drop]['profielmet'].values
     for name in names:
@@ -401,7 +401,7 @@ def merge_shapefiles(paths):
     gdf_combined = gdf_combined.sort_values(['profielmet','afstand'], ascending=[True,True])
     gdf_combined['profiel'] = gdf_combined[['AHN', 'slibhoogte']].fillna(0).sum(axis=1, numeric_only=True)
     gdf_combined.to_file(paths.shp_points_incl_AHN)
-    print(5, gdf_combined.columns)
+    
 def fun_punt_op_afstand(input_data,afstand_nieuw_punt):
     ''' Function to find points at a specific distance from the waterline ("afstand_nieuw_punt") including the corresponding height data''' 
     
@@ -422,11 +422,7 @@ def fun_punt_op_afstand(input_data,afstand_nieuw_punt):
     fy = np.poly1d(np.polyfit(x, y, 1)) # y = ax + b
     fx = np.poly1d(np.polyfit(y, x, 1)) # x = ay + b
     
-    # interval step over which to look for points
-    c_dir   = np.where(p_insteek.x.values - p_water.x.values>0,1,-1) # direction: >0: left to right, < 0: right to left
-    dxy     = [0.5, 0.25, 0.1, 0.05, 0.01, 0.005] * c_dir
-    # distance beyond profile edge to look for points
-    d_edge  = d_edge * c_dir
+    
     
     if abs(fy[1]) < 1.5: # not a vertical line (based on the slope of the regression line)
         
@@ -436,6 +432,13 @@ def fun_punt_op_afstand(input_data,afstand_nieuw_punt):
         # continue with decreasing interval until the distance deviates max 1 cm from the desired distance (variabel "afstand_nieuw_punt")
         delta_distance = 999
         i_dxy          = 0
+        
+        # interval step over which to look for points
+        c_dir   = np.where(p_insteek.x.values - p_water.x.values>0,1,-1) # direction: >0: left to right, < 0: right to left
+        dxy     = [0.5, 0.25, 0.1, 0.05, 0.01, 0.005] * c_dir
+        # distance beyond profile edge to look for points
+        d_edge  = d_edge * c_dir
+        
         while delta_distance > 0.01:
             Xcoords  = np.arange(p_water.x.values,p_insteek.x.values+d_edge,dxy[i_dxy])        
             df       = pd.DataFrame({'X':Xcoords,'Y':fy(Xcoords)})
@@ -458,6 +461,13 @@ def fun_punt_op_afstand(input_data,afstand_nieuw_punt):
         # estimate x-coord from regression (assuming line is vertical)
         delta_distance = 999
         i_dxy          = 0
+        
+        # interval step over which to look for points
+        c_dir   = np.where(p_insteek.y.values - p_water.y.values>0,1,-1) # direction: >0: top to bottom, < 0: bottom to top
+        dxy     = [0.5, 0.25, 0.1, 0.05, 0.01, 0.005] * c_dir
+        # distance beyond profile edge to look for points
+        d_edge  = d_edge * c_dir
+        
         while delta_distance > 0.01:
             Ycoords   = np.arange(p_water.y.values,p_insteek.y.values+d_edge,dxy[i_dxy])       
             df       = pd.DataFrame({'X':fx(Ycoords),'Y':Ycoords})
@@ -513,19 +523,11 @@ def extra_droge_punten(paths):
     grouped = gdf.groupby('profielmet')
     
     # Interval in which to add points
-    afstanden = [5, 7.5, 10] # threshold
-    d_extra   = [2.5, 5, 7.5] # interval extra point
+    afstanden = [2.5, 5, 7.5] # interval extra point
     d_edge    = 15 # additional distance beyond profile edge (insteek) to be included
     
     # Loop through each profielmet-code
-    for name, group in tqdm(grouped):
-        # try:
-            # names = ['1893671']
-            # if name not in names: continue
-            # print(name)
-            # print(group[['profielmet','punttype','slibhoogte','profiel']])
-            # return
-        
+    for name, group in tqdm(grouped):        
             # left side
             p_insteek    = group[group['punttype'] == 'A24'].geometry.iloc[0]
             p_water      = group[group['punttype'] == 'A22L'].geometry.iloc[0]
@@ -539,8 +541,8 @@ def extra_droge_punten(paths):
             # add points between A22L and A24
             for d in range(0,len(afstanden)):              
                 if afstd > afstanden[d]:
-                    # add point at d_extra[d]
-                    afstand_nieuw_punt = d_extra[d]
+                    # add point at afstanden[d]
+                    afstand_nieuw_punt = afstanden[d]
                     gdf_new            = fun_punt_op_afstand(input_data, afstand_nieuw_punt)
                     gdf                = fun_add_points(gdf, gdf_new, name, a_ref, p_water, 'links', code_extra_dr) # toevoegen aan shapefile 
                 
@@ -549,7 +551,7 @@ def extra_droge_punten(paths):
             AHN_prev = group[group['punttype']==code_insteek]['profiel'].values
             for d in range(0,len(afstanden)):  
                 if (afstanden[d] > afstd) & (afstanden[d] < afstd + d_edge):
-                    afstand_nieuw_punt = d_extra[d]
+                    afstand_nieuw_punt = afstanden[d]
                     gdf_new            = fun_punt_op_afstand(input_data, afstand_nieuw_punt)
                     if gdf_new['AHN'].values > AHN_prev:                    
                         gdf                = fun_add_points(gdf, gdf_new, name, a_ref, p_water, 'links', code_rand_dr) # toevoegen aan shapefile                         
@@ -571,8 +573,8 @@ def extra_droge_punten(paths):
             # add points between A22R and A28
             for d in range(0,len(afstanden)):                
                 if afstd > afstanden[d]:
-                    # add point at d_extra[d]
-                    afstand_nieuw_punt = d_extra[d]
+                    # add point at afstanden[d]
+                    afstand_nieuw_punt = afstanden[d]
                     gdf_new            = fun_punt_op_afstand(input_data, afstand_nieuw_punt)
                     gdf                = fun_add_points(gdf, gdf_new, name, a_ref, p_water, 'rechts',code_extra_dr ) # toevoegen aan shapefile 
             
@@ -580,7 +582,7 @@ def extra_droge_punten(paths):
             AHN_prev = group[group['punttype']==code_insteek]['profiel'].values
             for d in range(0,len(afstanden)):                        
                 if (afstanden[d] > afstd) & (afstanden[d] < afstd + d_edge):
-                    afstand_nieuw_punt = d_extra[d]
+                    afstand_nieuw_punt = afstanden[d]
                     gdf_new            = fun_punt_op_afstand(input_data, afstand_nieuw_punt)                    
                     if gdf_new['AHN'].values > AHN_prev:                    
                         gdf                = fun_add_points(gdf, gdf_new, name, a_ref, p_water, 'rechts', code_rand_dr) # toevoegen aan shapefile                                         
