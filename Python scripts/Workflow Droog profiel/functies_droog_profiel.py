@@ -17,7 +17,7 @@ from tqdm import tqdm
 warnings.filterwarnings("ignore")
 
 AHN_noData = -1E+22
-
+d_extrapolate = 15 # extrapoleer afstand voorbij uiterst profielpunt; deze moet minimaal voorbij de insteeklijn gaan
 
 def format_WIT(paths):
     # Input data
@@ -145,11 +145,11 @@ def fun_extrapolate(paths):
         
         # extrapolation coordinates (with a maximum distance of 5m)
         dx = np.diff(group_edge['X'].values)
-        if dx > 0: dx = min(5,dx) 
-        if dx < 0: dx = max(-5,dx) 
+        if dx > 0: dx = min(d_extrapolate,dx) 
+        if dx < 0: dx = max(-d_extrapolate,dx) 
         dy = np.diff(group_edge['Y'].values)
-        if dy > 0: dy = min(5,dy) 
-        if dy < 0: dy = max(-5,dy) 
+        if dy > 0: dy = min(d_extrapolate,dy) 
+        if dy < 0: dy = max(-d_extrapolate,dy) 
         
         # Left side
         punttype = 'A0'
@@ -557,7 +557,7 @@ def extra_droge_punten(paths):
                         gdf                = fun_add_points(gdf, gdf_new, name, a_ref, p_water, 'links', code_rand_dr) # toevoegen aan shapefile                         
                         AHN_prev           = gdf_new['AHN'].values
                     else:
-                        continue
+                        break
             
             # right side
             p_insteek    = group[group['punttype'] == 'A28'].geometry.iloc[0]
@@ -588,7 +588,7 @@ def extra_droge_punten(paths):
                         gdf                = fun_add_points(gdf, gdf_new, name, a_ref, p_water, 'rechts', code_rand_dr) # toevoegen aan shapefile                                         
                         AHN_prev           = gdf_new['AHN'].values
                     else:
-                        continue
+                        break
         
         
     # save file
