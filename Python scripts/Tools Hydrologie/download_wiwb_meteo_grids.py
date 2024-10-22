@@ -1,5 +1,8 @@
 """
 Download meteo grids from WIWB (precipitation and Makkink evapotranspiration) for a given period in monthly increments
+
+Author:         Boyan Domhof (HDSR)
+Last update:    22/10/2024
 """
 
 import sys
