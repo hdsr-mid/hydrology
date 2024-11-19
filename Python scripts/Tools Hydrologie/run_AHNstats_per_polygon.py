@@ -4,7 +4,8 @@ Created on Wed Nov 29 14:27:11 2023
 
 @author: PetraH
 
-Bepaal x-percentiel hoogte
+In deze script worden statistieken berekend o.b.v. AHN data op het landoppervlak voor ieder afwateringsgebied.
+
 """
 
 import os
@@ -29,11 +30,11 @@ class paths():
     # Input
     afwatering = os.path.join(root, 'Input', "Afwateringseenheden_2020.shp")
     water      = os.path.join(root, 'Input','BR_VS_Insteekvlak.shp')
-    topo       = os.path.join(root, 'Input','AHN3_ruw_clip_prep.tif')
+    topo       = os.path.join(r'H:\DATA\Service\Petra\00 GIS DATA','AHN4 ruw compressed.tif')
     
     # Temp files
-    afw_temp  = os.path.join(root, 'Output', "Afwateringseenheden_2020.shp")
-    topo_temp = os.path.join(root, 'Output', "AHN3_ruw_clip_prep.shp")
+    afw_temp  = os.path.join(root, 'Output', "temp_Afwateringseenheden_2020.shp")
+    topo_temp = os.path.join(root, 'Output', "temp_AHN3_ruw_clip_prep.shp")
     
     # Output
     shp_out    = os.path.join(root, 'Output', "Afwateringseenheden_2020_stats.shp")

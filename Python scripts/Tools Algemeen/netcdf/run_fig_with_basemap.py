@@ -8,21 +8,17 @@ Created on Wed May 15 16:48:38 2024
 import os
 import numpy as np
 import xarray as xr
-import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
-import datetime
 
 import io
 import cartopy.crs as ccrs
 import cartopy.io.img_tiles as cimgt
 from urllib.request import urlopen, Request
 from PIL import Image
-from tqdm import tqdm
 
 
 root   = os.getcwd()
-tinit  = 96 # spin-up time in [hours]
 
 
 def image_spoof(self, tile): # this function pretends not to be a Python script
@@ -45,11 +41,9 @@ if __name__ == "__main__":
     vmins        = 0
     vmaxs        = 2.5
     
-    # Get ROI data
+    # Get data
     t          = 0
     xds        = xr.open_dataset(os.path.join(root,'data.nc'))
-    t_init     = pd.to_datetime(xds.time.values[0]) + datetime.timedelta(hours=tinit)
-    xds        = xds.sel(time=slice(t_init, xds.time.values[-1]))
     time       = xds.time.values
     lon        = xds['Mesh2d_face_x_bnd'].values[:,0]
     lat        = xds['Mesh2d_face_y_bnd'].values[:,0]                          
@@ -60,11 +54,11 @@ if __name__ == "__main__":
     data       = xds[band].values
     
     # Convert data        
-    ROI_t  = data[t]
-    ROI_2d = np.zeros((rmax,cmax))*np.nan 
-    ROI_2d[lat_i,lon_i] = ROI_t           
-    ROI_2d[ROI_2d==0] = np.nan
-    xds = xr.Dataset(data_vars=dict(Waterdiepte=(["y", "x"], ROI_2d)),coords=dict(x= np.unique(np.round(lon,3)),y=np.unique(np.round(lat,3))[::-1]))
+    data_t  = data[t]
+    data_2d = np.zeros((rmax,cmax))*np.nan 
+    data_2d[lat_i,lon_i] = data_t           
+    data_2d[data_2d==0] = np.nan
+    xds = xr.Dataset(data_vars=dict(Waterdiepte=(["y", "x"], data_2d)),coords=dict(x= np.unique(np.round(lon,3)),y=np.unique(np.round(lat,3))[::-1]))
     xds.rio.write_crs("epsg:28992", inplace=True)
     
     # Plot
@@ -77,7 +71,7 @@ if __name__ == "__main__":
     xds['Waterdiepte'].plot.imshow('x','y', ax=ax, vmin = vmins, vmax = vmaxs, cmap = 'Blues', zorder=10, alpha=0.95)        
     plt.title(pd.to_datetime(time[t]) - pd.to_datetime(time[0]))
     
-    plt.savefig('fig_' + str(t) + '.png', dpi=300)
+    plt.savefig('fig.png', dpi=300)
     plt.close()
     
     

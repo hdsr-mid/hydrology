@@ -3,6 +3,17 @@
 Created on Tue Nov 14 09:02:03 2023
 
 @author: PetraH
+
+In deze script worden de volgende stappen gevolgd voor AHN data-preprocessing:
+    - clip op gebied (shp_extent)
+    - watervlaktes in AHN identificeren en de waarden voor deze pixels gelijk zetten aan het streefpeil
+
+Output:
+    Geclipt AHN raster 
+    Raster voor watervlaktes met streefpeilen
+    Geclipt AHN raster incl streefpeil waarden voor watervlaktes
+
+
 """
 
 import os
@@ -20,16 +31,15 @@ class paths():
     root   = os.getcwd()
 
     # Paths: Input files
-    raster_file = os.path.join(root,'Input', "AHN3_ruw.tif")
+    raster_file = os.path.join(r'H:\DATA\Service\Petra\00 GIS DATA', "AHN4 ruw compressed.tif")
     shp_extent  = os.path.join(root,'Input','EvS_gebied.shp')
     shp_water   = os.path.join(root,'Input','BR_VS_Watervlak.shp')
     shp_peil    = os.path.join(root,'Input','BR_VS_Peilgebieden.shp')
     
     # Paths: output files
-    peil_clip   = os.path.join(root,'Output','BR_VS_Peilgebieden_clip.shp')
-    raster_clip = os.path.join(root,'Output',"AHN3_ruw_clip.tif")
+    raster_clip = os.path.join(root,'Output',"AHN4_ruw_clip.tif")
     raster_peil = os.path.join(root,'Output','Peil.tif')
-    raster_prep = os.path.join(root,'Output',"AHN3_ruw_clip_prep.tif")
+    raster_prep = os.path.join(root,'Output',"AHN4_ruw_clip_prep.tif")
    
 def get_updated_meta(f, out_img, out_transform):
     """ Raster meta-informatie"""
@@ -61,7 +71,6 @@ def fun_preprocess_raster():
     shp_peil    = gpd.read_file(paths.shp_peil)    
     shp_water   = gpd.overlay(extent, shp_water, how='intersection',keep_geom_type=True)
     shp_peil    = gpd.overlay(extent, shp_peil, how='intersection',keep_geom_type=True)
-    shp_peil.to_file(paths.peil_clip)  
     shp_peil['PEIL'] = np.where(shp_peil["ZOMERPEIL"]==0,shp_peil["VASTPEIL"],shp_peil["ZOMERPEIL"])
     shp_peil['PEIL'] = np.where(shp_peil["PEIL"]==0,shp_peil["FLEXIBEL_B"],shp_peil["PEIL"])
     shp_peil['PEIL'] = np.where(shp_peil['PEIL'] ==-999,np.nan,shp_peil['PEIL'] )

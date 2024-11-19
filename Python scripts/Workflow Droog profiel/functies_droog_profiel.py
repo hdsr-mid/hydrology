@@ -6,7 +6,6 @@ Created on Thu Jan 11 14:48:37 2024
 """
 
 import numpy as np
-import os
 import geopandas as gpd
 import pandas as pd
 from osgeo import gdal 

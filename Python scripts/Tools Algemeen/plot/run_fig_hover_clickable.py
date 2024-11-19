@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
     # -----------------------------------------------
     # Plot map
-    p_map = figure(title="My first interactive plot!", height=300)
+    p_map = figure(title="My first interactive plot!", height=500)
     p_map.patches('xs', 'ys', fill_alpha=0.7,
               fill_color={'field': 'code', 'transform': LinearColorMapper(palette=palette)},
               line_color='black', line_width=0.5, source=geo_source)

@@ -3,6 +3,10 @@
 Created on Wed Nov 15 13:15:19 2023
 
 @author: PetraH
+
+The inundatie is estimated in two steps:
+    1. area below waterlevel -> waterdepth
+    2. area below waterlevel which is connected to a waterbody -> inundationdepth 
 """
 
 import os
@@ -19,10 +23,6 @@ from rasterio.enums import MergeAlg
 from shapely.geometry import mapping
 import warnings
 warnings.filterwarnings("ignore")
-
-'''The inundatie is estimated in two steps:
-    1. area below waterlevel -> waterdepth
-    2. area below waterlevel which is connected to a waterbody -> inundationdepth '''
 
 # id of the zone over which the statistics are calculated
 zonalid = 'CODE'

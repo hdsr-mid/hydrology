@@ -5,12 +5,9 @@ Created on Thu Jun  1 13:56:53 2023
 @author: PetraH
 """
 
-import os
 import numpy as np
-from PIL import Image
-from osgeo import gdal, osr
+from osgeo import gdal
 import matplotlib.pyplot as plt
-from scipy import interpolate
 
 def read_geotiff(filename):
     ds = gdal.Open(filename)

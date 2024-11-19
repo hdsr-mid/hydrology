@@ -6,12 +6,7 @@ Created on Wed Feb 28 13:17:46 2024
 """
 
 import numpy as np
-import os
 import geopandas as gpd
-import pandas as pd
-from osgeo import gdal 
-from shapely.geometry import Point
-from shapely.geometry import LineString 
 import warnings
 from tqdm import tqdm
 warnings.filterwarnings("ignore")
