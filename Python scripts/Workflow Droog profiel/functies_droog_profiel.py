@@ -42,7 +42,7 @@ def format_WIT(paths):
         outfile.write('\n')    
     print(len(names), ' of ',len(names_all), ' profiles are dropped because they are not located in primary waterways. Check ', paths.txt_dropped, ' for the ID codes.')
     
-    # keep only profiles in primary waterways
+    # keep only profiles close to a waterway
     names_all= np.unique(gdf['profielmet'].values)
     gdf      = gdf[gdf['HO_afstd']<1]    
     names_sel= np.unique(gdf['profielmet'].values)
@@ -53,6 +53,17 @@ def format_WIT(paths):
         outfile.write('\n')    
     print(len(names), ' of ',len(names_all), ' profiles are dropped because their min distance from the waterway is more than 1 m. Check ', paths.txt_dropped, ' for the ID codes.')
     
+    # keep only profiles with identical codes for the hydroobject and insteekvlak
+    names_all= np.unique(gdf['profielmet'].values)
+    gdf      = gdf[gdf['HO_ID']==gdf['INSTK_ID']]    
+    names_sel= np.unique(gdf['profielmet'].values)
+    names   = [n for n in names_all if n not in names_sel]
+    with open(paths.txt_dropped, 'a') as outfile:
+        outfile.write('Profiles dropped because their codes do not match (hydroobject vs. insteekvlak):\n')
+        outfile.write(str(names))
+        outfile.write('\n')    
+    print(len(names), ' of ',len(names_all), ' profiles are dropped because their codes do not match (hydroobject vs. insteekvlak). Check ', paths.txt_dropped, ' for the ID codes.')
+    
     # Save
     gdf.to_file(paths.shp_WIT_edited)
 
@@ -61,14 +72,17 @@ def add_HO_ID(paths, gdf):
     ''' Add the code and smallest distance to a Hydro object to the profiles'''
     
     # Input data
-    shp_HO = gpd.read_file(paths.shp_HO)
-    shp_HO = shp_HO[['CODE','CATEGORIEO','geometry']]
+    shp_HO    = gpd.read_file(paths.shp_HO)
+    shp_HO    = shp_HO[['CODE','CATEGORIEO','geometry']]
+    shp_INSTK = gpd.read_file(paths.shp_insteek)
+    shp_INSTK = shp_INSTK[['CODE','CODE_HO','geometry']]
     
     # Group points based on the column 'profielmet'
     grouped = gdf.groupby('profielmet')
     
     # Loop through each profielmet-code
     for name, group in grouped:    
+        ### Hydro object ###
         # Spatial join
         gdf_joined = gpd.sjoin_nearest(group, shp_HO, distance_col="distances")
         
@@ -79,7 +93,18 @@ def add_HO_ID(paths, gdf):
         gdf.loc[(gdf['profielmet'] == name), 'HO_ID']      = gdf_joined.CODE.values[0]
         gdf.loc[(gdf['profielmet'] == name), 'HO_cat']     = gdf_joined.CATEGORIEO.values[0]
         gdf.loc[(gdf['profielmet'] == name), 'HO_afstd']   = distance
-    
+        
+        ### Insteekvlak ###
+        # Spatial join
+        gdf_joined = gpd.sjoin_nearest(group, shp_INSTK, distance_col="distances")
+        
+        # get smallest distance
+        distance = np.min(gdf_joined.distances.values)
+        
+        # add info to gdf        
+        gdf.loc[(gdf['profielmet'] == name), 'INSTK_ID']      = gdf_joined.CODE_HO.values[0]
+        gdf.loc[(gdf['profielmet'] == name), 'INSTK_afstd']   = distance
+        
     return gdf  
     
 def fun_preprocessing(paths):
@@ -143,13 +168,13 @@ def fun_extrapolate(paths):
         fy = np.poly1d(np.polyfit(x, y, 1)) # y = ax + b
         fx = np.poly1d(np.polyfit(y, x, 1)) # x = ay + b
         
-        # extrapolation coordinates (with a maximum distance of 5m)
+        # extrapolation coordinates (with a maximum distance of d_extrapolate)
         dx = np.diff(group_edge['X'].values)
-        if dx > 0: dx = min(d_extrapolate,dx) 
-        if dx < 0: dx = max(-d_extrapolate,dx) 
+        if dx > 0: dx = d_extrapolate 
+        if dx < 0: dx = -d_extrapolate 
         dy = np.diff(group_edge['Y'].values)
-        if dy > 0: dy = min(d_extrapolate,dy) 
-        if dy < 0: dy = max(-d_extrapolate,dy) 
+        if dy > 0: dy = d_extrapolate
+        if dy < 0: dy = -d_extrapolate
         
         # Left side
         punttype = 'A0'
@@ -224,7 +249,7 @@ def points_2_line(paths):
        
 def clip_line_by_polygon(paths):
     ''' Clip line by polygon'''
-        
+    
     # Input data
     gdf_line    = gpd.read_file(paths.shp_lines)
     gdf_polygon = gpd.read_file(paths.shp_insteek)
@@ -238,12 +263,10 @@ def clip_line_by_polygon(paths):
     gdf_multi         = intersection[intersection.geometry.geom_type == 'MultiLineString'].explode()
     gdf_multi_joined  = gpd.sjoin(gdf_multi,shp_HO, how = 'left')
     gdf_multi_joined  = gdf_multi_joined[~gdf_multi_joined['index_right'].isna()]
+    gdf_multi_joined  = gdf_multi_joined[gdf_multi_joined['HO_ID']==gdf_multi_joined['CODE']]
     gdf               = gpd.GeoDataFrame(pd.concat([gdf_single, gdf_multi_joined], ignore_index=True))
     
     # Save to file
-    gdf_single.to_file(paths.shp_lines_insteek.replace('.shp','_single.shp')) 
-    gdf_multi.to_file(paths.shp_lines_insteek.replace('.shp','_multi.shp')) 
-    gdf_multi_joined.to_file(paths.shp_lines_insteek.replace('.shp','_multisel.shp')) 
     gdf.to_file(paths.shp_lines_insteek) 
     
 def lines_2_points(paths):
@@ -348,7 +371,7 @@ def merge_shapefiles(paths):
              (np.round(Y_insteek['Y']['max'].values,2) < np.round(Y_nat['Y']['max'].values,2)) |
              (np.round(Y_insteek['Y']['min'].values,2) > np.round(Y_nat['Y']['min'].values,2))
              )
-    names = X_insteek.iloc[ind_drop]['profielmet'].values
+    names = list(X_insteek.iloc[ind_drop]['profielmet'].values)
     for name in names:
         gdf1     = gdf1.drop(gdf1[gdf1['profielmet']==name].index)
         gdf2     = gdf2.drop(gdf2[gdf2['profielmet']==name].index)
