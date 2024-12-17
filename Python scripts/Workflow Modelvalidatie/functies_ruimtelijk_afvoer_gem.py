@@ -256,21 +256,34 @@ def get_kwel(paths, shp_afvoer):
     
     return shp.replace(-99999,np.nan)
 
+def sel_years(df,years):
+    
+    df  = df.rename(columns={"GMT+1": "time"})
+    df  = df.set_index('time').astype('float').reset_index()  
+    df['YEAR'] = np.array([pd.to_datetime(t).year for t in df.time.values])
+    df  = df[df['YEAR'].isin(years)]
+    
+    return df
+
 def main(paths, months, years):
     ''' Satellite data: FEWS-WIS'''
     # input data
     shp_afvoer = gpd.read_file(paths.shp_afvoer)
     shp_afwatr = gpd.read_file(paths.shp_afwatr)
     shp_peil   = gpd.read_file(paths.shp_peil).rename(columns ={'GPGIDENT':'CODE'})
-    df_P       = pd.read_csv(paths.df_P, delimiter=',')
-    df_E       = pd.read_csv(paths.df_E, delimiter=',')
+    df_P       = pd.read_csv(paths.df_P, delimiter=',').drop(0)
+    df_E       = pd.read_csv(paths.df_E, delimiter=',').drop(0)
+    
+    # select years
+    df_P       = sel_years(df_P,years)
+    df_E       = sel_years(df_E,years)
     
     # format data
     shp_afvoer.crs ='EPSG:28992'
     shp_afwatr.crs ='EPSG:28992'    
     shp_peil.crs   ='EPSG:28992'    
-    df_P   = df_P.drop(0).drop(columns='GMT+1').astype(float)
-    df_E   = df_E.drop(0).drop(columns='GMT+1').astype(float)
+    df_P   = df_P.drop(columns='time').astype(float)
+    df_E   = df_E.drop(columns='time').astype(float)
     
     # calculate mean
     df_P  = df_P.replace(-9999,np.nan).mean(axis=0, skipna=True).reset_index()

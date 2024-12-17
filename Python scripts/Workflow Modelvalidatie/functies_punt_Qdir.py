@@ -15,6 +15,8 @@ import hkvsobekpy as hkv
 import functies_punt_Qdir_bokeh
 warnings.filterwarnings("ignore")
 
+t_min_coverage    = 3*365 # minimum number observation points required to validate
+
 def add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data):
     for i in range(0,len(gdf_joined)):    
         ID_data  = gdf_joined.iloc[i]['ID_left']
@@ -29,7 +31,7 @@ def add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data):
         # Performance
         OBS  = df_sel[ID_data].dropna().values
         MOD  = df_sel[ID_model].dropna().values
-        if len(OBS) > 0:        
+        if len(OBS) > t_min_coverage:        
             OBSdir = np.unique(np.where(np.round(OBS,2)>=0, 1, -1))            
             MODdir = np.unique(np.where(np.round(MOD,2)>=0, 1, -1))            
             if (len(OBSdir)==2) | (len(MODdir)==2):

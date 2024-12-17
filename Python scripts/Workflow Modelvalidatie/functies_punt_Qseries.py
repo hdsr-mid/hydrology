@@ -15,7 +15,7 @@ import hkvsobekpy as hkv
 import functies_punt_Qseries_bokeh
 warnings.filterwarnings("ignore")
 
-t_min_coverage    = 1*365 # minimum number observation points required to validate
+t_min_coverage    = 3*365 # minimum number observation points required to validate
 
 def add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data):
     # Create empty columns
