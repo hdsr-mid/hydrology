@@ -6,19 +6,26 @@ Created on Mon Apr 22 15:26:33 2024
 """
 
 import numpy as np
-from bokeh.plotting import figure, save
-from bokeh.models import CustomJS, ColumnDataSource, GeoJSONDataSource, TapTool, LinearColorMapper, ColorBar, Select, MultiLine
-from bokeh.layouts import layout, gridplot, column, row
-from bokeh.plotting import figure, save
-from bokeh.palettes import Viridis6 as palette
-from bokeh.transform import transform
+import bokeh.plotting
+from bokeh.models import CustomJS, ColumnDataSource, GeoJSONDataSource, TapTool, MultiLine
+from bokeh.layouts import layout
 import geopandas as gpd
-import pandas as pd
-import numpy as np
 from bokeh.models import HoverTool 
+from shapely.geometry import MultiLineString
 import warnings
 warnings.filterwarnings("ignore")
+bokeh.plotting.output_notebook()
 
+def getLineCoords(row, geom, coord_type):
+    if isinstance(row[geom], MultiLineString):
+        empty_l = []
+        return empty_l
+    else:
+        if coord_type == 'x':
+            return list( row[geom].coords.xy[0] )
+        elif coord_type == 'y':
+            return list( row[geom].coords.xy[1] )
+        
 def get_data(sub_data, df_data_Q, shp_points, ids):
     ID_data  = shp_points.iloc[ids]['ID_left']
     ID_model = shp_points.iloc[ids]['ID_right']
@@ -76,6 +83,9 @@ def fun_create_dict(shp_points, sub_data, df_data_Q):
 def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q):    
     # -----------------------------------------------
     # Get data
+    shp_reach  = gpd.read_file(paths.shp_reach)
+    shp_reach['x'] = shp_reach.apply(getLineCoords, geom='geometry', coord_type='x', axis=1)
+    shp_reach['y'] = shp_reach.apply(getLineCoords, geom='geometry', coord_type='y', axis=1)
     shp_points = shp_points.drop('geometry', axis=1).copy()
     shp_points['FID'] = shp_points.reset_index().index.values.astype(str)
     geo_source = GeoJSONDataSource(geojson=shp_afvoer.to_json())
@@ -85,11 +95,12 @@ def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q):
     
     # -----------------------------------------------
     # Plot map: with points
-    p1 = figure(title='Stroomrichting: Sobek vs. FEWS-WIS [m3/s]', height=350, width=820)
+    p1 = bokeh.plotting.figure(title='Stroomrichting: Sobek vs. FEWS-WIS [m3/s]', height=350, width=820)
     p1.patches(fill_alpha=1,fill_color='white',line_color='black', line_width=0.5, source=geo_source)
+    p1.multi_line('x', 'y', source=ColumnDataSource(shp_reach.drop('geometry', axis=1)), color='blue', line_width=0.2)
     map_source = ColumnDataSource(shp_points)    
     map_points = p1.scatter('X', 'Y', source=map_source,color='red', size=10)
-    tooltips = [('ID', '@IRIS_ID')]
+    tooltips = [('ID', '@ID_left' + '/' + '@IRIS_ID')]
     hover = HoverTool(renderers=[map_points], tooltips=tooltips) 
     p1.add_tools(hover)  
     
@@ -99,7 +110,7 @@ def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q):
     #start with initial state for columndatasource
     ID_0  = shp_points.iloc[0]['FID']
     src   = ColumnDataSource(data=src_dict[ID_0])
-    p3    = figure(title='Gemaal ' +  str(shp_points.iloc[0]['IRIS_ID']), height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
+    p3    = bokeh.plotting.figure(title='Gemaal/ADCP ' +  str(shp_points.iloc[0]['IRIS_ID']), height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
     glyph = MultiLine(xs="t_MOD", ys="MOD", line_color="red")
     p3.add_glyph(src, glyph)
     glyph = MultiLine(xs="t_OBS", ys="OBS", line_color="black")
@@ -115,7 +126,7 @@ def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q):
                   var sel_bar_i = map_source.selected.indices[0]
                   var line_id = map_source.data['FID'][sel_bar_i]
                   src.data = src_dict[line_id]
-                  p3.title.text= 'Gemaal ' + map_source.data['IRIS_ID'][sel_bar_i]
+                  p3.title.text= 'Gemaal/ADCP ' + map_source.data['IRIS_ID'][sel_bar_i]
                   src.change.emit()
                   p3.change.emit()
                   ''')
@@ -125,5 +136,6 @@ def main(paths, shp_afvoer, shp_points, sub_data, df_data_Q):
     map_source.selected.js_on_change('indices',cb)             
     
     grid = layout([[p1],[p3],])
-    save(grid,paths.fightml)
+    # bokeh.plotting.show(grid, notebook_handle=True) # nu niet laten zien in notebook om error te voorkomen (te veel plots)
+    bokeh.plotting.save(grid,paths.fightml)
     

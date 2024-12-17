@@ -5,16 +5,9 @@ Created on Thu Feb  1 13:14:34 2024
 @author: PetraH
 """
 
-import os
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-from tqdm import tqdm
-import matplotlib.dates as mdates
-from datetime import datetime
-import xarray as xr
 import warnings
 from shapely.geometry import Point
 from pathlib import Path
@@ -31,19 +24,18 @@ def add_stats(gdf_joined, df_sites_Q, df_data_Q, sub_data):
         df_model.columns =['time', ID_model]
         df_model = df_model.set_index('time').resample('D').mean().reset_index()
         df_data  = df_data.set_index('time').resample('D').mean().reset_index()
-        df_sel   = df_model.merge(df_data, on='time', how='left').dropna()
+        df_sel   = df_model.merge(df_data, on='time', how='left')
         
         # Performance
-        OBS  = df_sel[ID_data].values
-        MOD  = df_sel[ID_model].values
-        MOD  = MOD[np.isnan(OBS)==0]
-        OBS  = OBS[np.isnan(OBS)==0]
+        OBS  = df_sel[ID_data].dropna().values
+        MOD  = df_sel[ID_model].dropna().values
         if len(OBS) > 0:        
-            OBSdir = np.unique(np.where(OBS>=0, 1, -1))            
-            if len(OBSdir)==1:
-                gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 0
-            else:
+            OBSdir = np.unique(np.where(np.round(OBS,2)>=0, 1, -1))            
+            MODdir = np.unique(np.where(np.round(MOD,2)>=0, 1, -1))            
+            if (len(OBSdir)==2) | (len(MODdir)==2):
                 gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 1
+            else:
+                gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 0
         else:
             gdf_joined.loc[(gdf_joined['ID_left'] == ID_data), 'Qdir']     = 0
       
@@ -69,10 +61,11 @@ def main(paths, months, years):
     df_sites_Q = pd.read_csv(paths.df_Q_WISsites)    
     df_sites_Q = df_sites_Q.rename(columns={"LOC_ID": "ID"}).drop(0)
     df_data_Q  = pd.read_csv(paths.df_Q_WISdata, delimiter=',',low_memory=False)
-    df_data_Q  = df_data_Q.rename(columns={"Unnamed: 0": "time"}).drop(0)
+    df_data_Q  = df_data_Q.rename(columns={"GMT+1": "time"})
     df_data_Q  = df_data_Q.astype({'time':'datetime64[ns]'})    
-    df_data_Q  = df_data_Q.set_index('time').astype('float').replace(-999,np.nan).reset_index()
-    df_data_Q  = df_data_Q.set_index('time').astype('float').replace(-999,np.nan).reset_index()
+    df_data_Q  = df_data_Q.set_index('time').astype('float')
+    df_data_Q[df_data_Q<-900] = -999
+    df_data_Q  = df_data_Q.replace(-999,np.nan).reset_index()    
     df_data_Q['MONTH'] = np.array([pd.to_datetime(t).month for t in df_data_Q.time.values])
     df_data_Q['YEAR'] = np.array([pd.to_datetime(t).year for t in df_data_Q.time.values])
     df_data_Q  = df_data_Q[df_data_Q['MONTH'].isin(months)]

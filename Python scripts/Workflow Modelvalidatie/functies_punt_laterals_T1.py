@@ -11,67 +11,52 @@ import numpy as np
 from scipy.interpolate import interp1d
 import geopandas as gpd
 import hkvsobekpy as hkv
-from pathlib import Path
 import pandas as pd
-import matplotlib.pyplot as plt
-
-from bokeh.plotting import figure, save, output_file
-from bokeh.models import ColumnDataSource, GeoJSONDataSource, LinearColorMapper, ColorBar
-from bokeh.layouts import layout
-from bokeh.transform import transform
+import bokeh.plotting 
+from bokeh.models import GeoJSONDataSource, LinearColorMapper, ColorBar
 from bokeh.models import HoverTool 
 
-def png(paths,shp_afwatr,shp_afvoer,shp_comp):
-    # Smaller marker size for when the difference is insignificant
-    dQ_abs    = abs(shp_comp['dQ'])
-    dQ_norm   = dQ_abs/np.max(dQ_abs)
-    msize = np.where(abs(shp_comp['dQ'])<0.01, 1, 1+dQ_norm*5)    
-    
-    plt.figure(figsize=(10,5))
-    plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.1, hspace=0.9)
-    
-    ax = plt.subplot2grid((1, 1), (0, 0), rowspan = 2)
-    shp_afwatr.plot(ax=ax, column = 'dQ', vmin = -0.1, vmax = 0.1, markersize=msize, cmap = 'jet', edgecolor='face', linewidth=0, alpha = 1, legend=True, legend_kwds={"label": "Verschil: Sobek - HYDROMEDAH [m3/s]"})
-    # shp_comp.plot(ax=ax, column = 'dQ', vmin = -0.1, vmax = 0.1, markersize=msize, cmap = 'jet', legend=True, legend_kwds={"label": "Verschil: Sobek - HYDROMEDAH [m3/s]"})
-    shp_afvoer.plot(ax=ax, color= "none", facecolor = "none", edgecolor='black')
-    plt.xlim([109000,170000])
-    plt.ylim([438000,468000])
-    plt.grid()
-    plt.savefig(paths.fig, dpi=300)
-    plt.show()
-    plt.close()
+import warnings
+warnings.filterwarnings("ignore")
 
-def bokeh(paths, shp_afvoer, shp_afwatr):  
+bokeh.plotting.output_notebook()
+
+vmin = -0.5
+vmax = 0.5
+
+
+def bokeh_fig(paths, shp_afvoer, shp_afwatr):  
     metric = 'dQ'
-    vmin   = -0.1
-    vmax   = 0.1
     
     # -----------------------------------------------
     # Get data
     # shp_afwatr   = shp_afwatr[shp_afwatr[metric].replace(np.nan,-999)!=-999]
     # shp_afwatr   = shp_afwatr.drop('geometry', axis=1).copy()
-    geo_source = GeoJSONDataSource(geojson=shp_afvoer.to_json())
-    map_source = GeoJSONDataSource(geojson=shp_afwatr.to_json())
+    geo_source  = GeoJSONDataSource(geojson=shp_afvoer.to_json())
+    map_source1 = GeoJSONDataSource(geojson=shp_afwatr.to_json())
+    map_source2 = GeoJSONDataSource(geojson=shp_afwatr[np.round(shp_afwatr[metric],1)!=0].to_json())
     
     # -----------------------------------------------
     # Plot map
     
-    p1 = figure(title='Afvoer (laterals) T=1 zomer: RUPROF input vs. Hydromedah [m3/s]', height=350, width=820)
+    p1 = bokeh.plotting.figure(title='Afvoer (laterals) T=1 zomer: RUPROF input vs. Hydromedah [m3/s]', height=350, width=820)
     color = LinearColorMapper(palette = 'Turbo256', low = vmin, high = vmax)
-    map_poly  = p1.patches(fill_alpha=1,
+    map_poly = p1.patches(fill_alpha=1, fill_color = 'grey',line_color='black', line_width=0.5, source=map_source1)
+    p1.patches(fill_alpha=1,
               fill_color={'field': metric, 'transform': color},
-              line_color='black', line_width=0.5, source=map_source)
-    color_bar = ColorBar(color_mapper=color,title=metric)
+              line_color='black', line_width=0.5, source=map_source2)
+    color_bar = ColorBar(color_mapper=color,title='dQ = RUPROF - HYDROMEDAH [m3/s]')
     p1.add_layout(color_bar, 'right')
     tooltips = [('ID', '@CODE'),
-                ('Label', '@'+metric)]
+                ('Label', '@'+metric+'{0.0}'+'m3/s'),
+                ('RUPROF', '@Q_Sobek'+'{0.0}'+'m3/s'),
+                ('HYDROMEDAH', '@Q_HYDROMEDAH'+'{0.0}'+'m3/s')]
     hover = HoverTool(renderers=[map_poly], tooltips=tooltips) 
     p1.add_tools(hover)  
     p1.patches(fill_alpha=0,fill_color='white',line_color='black', line_width=1.5, source=geo_source)
     
-    
-    output_file(paths.fightml)
-    save(p1)
+    bokeh.plotting.show(p1, notebook_handle=True)
+    bokeh.plotting.save(p1,paths.fightml)
     
 def fun_T1(x=None):
     # waarde voor T=1 afleiden
@@ -88,7 +73,7 @@ def fun_T1(x=None):
     else:
         x_T1 = -999
     
-    return np.round(float(x_T1),2)
+    return np.round(float(x_T1),1)
     
 def add_statistic(output, data, threshold=None, percentile=None, name=None):
     # functie om statistieken toe te voegen aan de shapefile
@@ -129,7 +114,7 @@ def lat_data(paths):
     rain = np.array(rain)
     sep  = np.array(sep)
     Qlat = (rain + sep)/ 1000 * area # m3/s
-    df_Qlat = pd.DataFrame({'ID': ID,'Q_Sobek': np.round(Qlat,2)})
+    df_Qlat = pd.DataFrame({'ID': ID,'Q_Sobek': np.round(Qlat,1)})
     return df_Qlat
 
 
@@ -201,8 +186,7 @@ def main(paths, months, years):
     
     # add values to shapefile
     shp_comp['CODE'] = [i.replace('drain','') for i in shp_comp.ID.values]
-    shp_afwatr  = shp_afwatr.merge(shp_comp[['CODE','dQ']], on='CODE', how='left')
+    shp_afwatr  = shp_afwatr.merge(shp_comp[['CODE','dQ','Q_Sobek','Q_HYDROMEDAH']], on='CODE', how='left')
     
     # Data plotten
-    png(paths,shp_afwatr,shp_afvoer,shp_comp)
-    bokeh(paths, shp_afvoer, shp_afwatr)
+    bokeh_fig(paths, shp_afvoer, shp_afwatr)

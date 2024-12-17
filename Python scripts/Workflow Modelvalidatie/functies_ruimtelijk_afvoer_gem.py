@@ -8,85 +8,39 @@ gebaseerd op scripts ontvangen voor het berekenen van debietsstatistieken
 """
 import os
 import numpy as np
-from scipy.interpolate import interp1d
 import geopandas as gpd
 import hkvsobekpy as hkv
-from pathlib import Path
 import pandas as pd
-import matplotlib.pyplot as plt
-
-from bokeh.plotting import figure, save, output_file
-from bokeh.models import ColumnDataSource, GeoJSONDataSource, LinearColorMapper, ColorBar, Range1d
+import bokeh.plotting 
+from bokeh.models import ColumnDataSource, GeoJSONDataSource, LinearColorMapper, Range1d, CustomJS
+from bokeh.models import HoverTool, Whisker, VBar, TapTool, ColorBar
 from bokeh.layouts import layout
-from bokeh.transform import transform
-from bokeh.models import HoverTool 
+from rasterstats import zonal_stats
+from osgeo import gdal
 
+import warnings
+warnings.filterwarnings("ignore")
 
-
-from bokeh.models import Whisker
-from bokeh.sampledata.autompg2 import autompg2
-from bokeh.transform import factor_cmap
+bokeh.plotting.output_notebook()
 
 
 vmin   = -2
 vmax   = 2
 
 # voor de boxplot en histogram
-dmin  = 0
-dmax  = 25
+dmin  = -1000
+dmax  = 5000
 nbins = dmax-dmin
 
-def png(paths,shp_afvoer,shp_comp):
-    # Smaller marker size for when the difference is insignificant
+def bokeh_boxplot(shp_comp,type_OW):
+    if type_OW=='oost':
+        col_Q_WB = 'Q_WB_O'        
+    else:
+        col_Q_WB = 'Q_WB_W'        
     
-    plt.figure(figsize=(10,5))
-    plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.1, hspace=0.9)
-    
-    ax = plt.subplot2grid((2, 1), (0, 0), rowspan = 2)
-    shp_comp.plot(ax=ax, column = 'dQ', vmin = vmin, vmax = vmax, cmap = 'jet', edgecolor='face', linewidth=0, alpha = 1, legend=True, legend_kwds={"label": "Verschil: Satelliet - Hydromedah [mm/d]"})
-    shp_afvoer.plot(ax=ax, color= "none", facecolor = "none", edgecolor='black')
-    plt.xlim([109000,170000])
-    plt.ylim([438000,468000])
-    plt.grid()
-    
-    plt.savefig(paths.fig, dpi=300)
-    plt.show()
-    plt.close()
-    
-    '''-----------------------------------------------------------------------------------------------'''
-    shp_comp = shp_comp.rename(columns ={'Qsat':'Satelliet','Q_HYDROMEDAH':'HYDROMEDAH'})
-                                        
-    plt.figure(figsize=(10,8))
-    plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.9, wspace=0.1, hspace=0.9)
-    
-    
-    ax = plt.subplot2grid((2, 2), (0, 0))
-    shp_comp.boxplot(column=['Satelliet','HYDROMEDAH'])
-    plt.ylim([dmin,dmax])
-    plt.ylabel('Q [mm/d]')
-    
-    ax = plt.subplot2grid((2, 2), (1, 0))
-    shp_comp['Satelliet'].hist(bins=nbins, range=(dmin,dmax))
-    plt.title('Satelliet data')
-    plt.xlabel('Q [mm/d]')
-    plt.xlim([dmin,dmax])
-    plt.ylabel('Nr bins')
-    
-    ax = plt.subplot2grid((2, 2), (1, 1))
-    shp_comp['HYDROMEDAH'].hist(bins=nbins, range=(dmin,dmax))
-    plt.title('HYDROMEDAH')
-    plt.xlabel('Q [mm/d]')
-    plt.xlim([dmin,dmax])
-    plt.ylabel('Nr bins')
-    
-    plt.savefig(paths.fig.replace('.png','_2.png'), dpi=300)
-    plt.show()
-    plt.close()
-
-def bokeh_boxplot(shp_comp):
-    
-    df1 = pd.DataFrame({'kind': ['Satelliet']*len(shp_comp),'value': shp_comp['Qsat']})
-    df2 = pd.DataFrame({'kind': ['HYDROMEDAH']*len(shp_comp),'value': shp_comp['Q_HYDROMEDAH']})
+    # create dataframe
+    df1 = pd.DataFrame({'kind': ['Water balans']*len(shp_comp),'value': shp_comp[col_Q_WB]})
+    df2 = pd.DataFrame({'kind': ['HYDROMEDAH']*len(shp_comp),'value': shp_comp['Q_HYDRMDH']})
     df  = pd.concat([df1, df2],axis=0, join="inner",ignore_index=False)     
     kinds = df.kind.unique()
     
@@ -103,7 +57,7 @@ def bokeh_boxplot(shp_comp):
 
     source = ColumnDataSource(df)
 
-    p = figure(x_range=kinds, tools="", toolbar_location=None,y_axis_label="Q [mm/d]")
+    p = bokeh.plotting.figure(x_range=kinds, tools="", toolbar_location=None,y_axis_label="Q [mm/yr]", height=350, width=350)
 
     # outlier range
     whisker = Whisker(base="kind", upper="upper", lower="lower", source=source)
@@ -125,53 +79,83 @@ def bokeh_boxplot(shp_comp):
 
     return p
     
-def bokeh_hist(x,title):
+def bokeh_fig(paths, shp_afvoer, shp_comp, type_OW):  
+    if type_OW=='oost':
+        col_kwel = 'Kwel_oost'
+        col_Q_WB = 'Q_WB_O'
+        metric   = 'dQ_O'        
+        fightml  = paths.fightml.replace('.html','_oost.html')
+    else:
+        col_kwel = 'Kwel_west'
+        col_Q_WB = 'Q_WB_W'
+        metric   = 'dQ_W'        
+        fightml  = paths.fightml.replace('.html','_west.html')
     
-    p = figure(width=670, height=400, toolbar_location=None, title=title)
-
-    # Histogram
-    bins = np.linspace(dmin, dmax, nbins)
-    
-    hist, edges = np.histogram(x, density=True, bins=bins)
-    p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:],fill_color="blue", line_color="white")
-
-    p.y_range.start = 0
-    p.xaxis.axis_label = "Q [mm/d]"
-    p.yaxis.axis_label = "PDF(x)"
-
-    return p
-
-def bokeh(paths, shp_afvoer, shp_comp):  
+    # remove polygons out of region
+    shp_comp_sel = shp_comp.copy()
+    for col in ['Psat','Esat','Q_HYDRMDH']:
+        shp_comp_sel[np.isnan(shp_comp[col_Q_WB])][col] = np.nan 
     
     # -----------------------------------------------
     # Get data
+    shp_comp_sel['FID'] = shp_comp_sel.reset_index().index.values.astype(str)
     geo_source = GeoJSONDataSource(geojson=shp_afvoer.to_json())
-    map_source = GeoJSONDataSource(geojson=shp_comp.to_json())
+    map_source = GeoJSONDataSource(geojson=shp_comp_sel.to_json())
     
     # -----------------------------------------------
-    # Plot map 
-    metric = 'dQ'
-    p1 = figure(title='Afvoer (laterals) gemiddeld: Satelliet vs. HYDROMEDAH [mm/d]', height=350, width=820)
+    # --------- Plot map --------- 
+    p1 = bokeh.plotting.figure(title='Afvoer (laterals) gemiddeld: model (HYDROMEDAH) vs. referentie (satelliet)', height=350, width=820)
     color = LinearColorMapper(palette = 'Turbo256', low = vmin, high = vmax)
     map_poly  = p1.patches(fill_alpha=1,
               fill_color={'field': metric, 'transform': color},
               line_color='black', line_width=0.5, source=map_source)
-    color_bar = ColorBar(color_mapper=color)
+    color_bar = ColorBar(color_mapper=color,title='(model - referentie)/referentie [-]')
     p1.add_layout(color_bar, 'right')
     tooltips = [('ID', '@CODE'),
-                ('Label', '@'+metric)]
+                ('Label', '@'+metric+'{0.}'),
+                ('HYDROMEDAH', '@Q_HYDRMDH{0.}'+'mm/yr'),
+                ('Water balans', '@'+col_Q_WB+'{0.}'+'mm/yr')]
     hover = HoverTool(renderers=[map_poly], tooltips=tooltips) 
     p1.add_tools(hover)  
     
-    # boxplot
-    p2 = bokeh_boxplot(shp_comp)
+    # --------- boxplot --------- 
+    p2 = bokeh_boxplot(shp_comp_sel,type_OW)
     
-    # histogram
-    p3 = bokeh_hist(shp_comp['Qsat'],'Satelliet data')
-    p4 = bokeh_hist(shp_comp['Q_HYDROMEDAH'],'HYDROMEDAH')
+    # --------- bar plot --------- 
+    cols     = ['Psat',col_kwel,'Esat',col_Q_WB,'Q_HYDRMDH']
+    shp_comp_sel['Esat']         = -shp_comp_sel['Esat']
+    shp_comp_sel[col_Q_WB]       = -shp_comp_sel[col_Q_WB]
+    shp_comp_sel['Q_HYDRMDH']    = -shp_comp_sel['Q_HYDRMDH']
+    src_dict = fun_create_dict(shp_comp_sel,cols)
+    ID_0     = shp_comp_sel.iloc[0]['FID']
+    src      = ColumnDataSource(data=src_dict[ID_0])        
     
-    grid = layout([[p1,],[p2,],[p3,p4],])
-    save(grid,paths.fightml)    
+    p3 = bokeh.plotting.figure(x_range=cols,title='Waterbalans ' + shp_comp_sel.iloc[0]['CODE'], height=350, width=820,y_axis_label="Flux [mm/yr]")
+    glyph = VBar(x='index', top='data', bottom=0, width=0.5, fill_color='powderblue')
+    p3.add_glyph(src, glyph)
+    
+    #create the TapTool, add it to the bar figure, and enable it on initialization
+    tap = TapTool(renderers=[map_poly])
+    p1.add_tools(tap)
+    p1.toolbar.active_tap = tap
+    
+    cb = CustomJS(args=dict(map_source=map_source,src_dict=src_dict,src=src,p3=p3,glyph=glyph)
+                  ,code='''
+                  var sel_bar_i = map_source.selected.indices[0]
+                  var line_id = map_source.data['FID'][sel_bar_i]
+                  src.data = src_dict[line_id]
+                  p3.title.text= 'Waterbalans ' + map_source.data['CODE'][sel_bar_i]
+                  src.change.emit()
+                  p3.change.emit()
+                  ''')
+    
+    
+    #apply this callback to trigger whenever the indices of the selected glyph change
+    map_source.selected.js_on_change('indices',cb)             
+    
+    grid = layout([[p1,p2],[p3,]])
+    bokeh.plotting.show(grid, notebook_handle=True)
+    bokeh.plotting.save(grid,fightml)    
     
 def add_statistic(output, data, threshold=None, percentile=None, name=None):
     # functie om statistieken toe te voegen aan de shapefile
@@ -215,16 +199,76 @@ def lat_data(paths):
     df_Qlat = pd.DataFrame({'ID': ID,'Q_Sobek': np.round(Qlat,2)})
     return df_Qlat
 
+def fun_create_dict(shp,cols):
+    # Cerate timeseries dictionary
+    src_dict          = {}
+    
+    # Create dictionary
+    for point in range(0,len(shp)):    
+        FID           = shp.iloc[point]['FID']        
+        data          = shp.iloc[point][cols].T.reset_index()
+        data.columns  = ['index','data']
+        src_dict[FID] = dict(data)
+    
+    return src_dict
+
+    
+def get_raster_pixel_size(path):
+    # load raster
+    raster = gdal.Open(path)
+    
+    # get pizel size
+    gt =raster.GetGeoTransform()
+    
+    # close raster
+    raster = None
+    
+    return abs(gt[1])
+
+def get_kwel(paths, shp_afvoer):
+    # copy to avoid overwriting
+    shp = shp_afvoer.copy()
+    
+    # pixel size
+    dx1 = get_raster_pixel_size(paths.raster_kwelO)
+    dx2 = get_raster_pixel_size(paths.raster_kwelW)
+    
+    # Bereken median kwel
+    statsO          = zonal_stats(shp,paths.raster_kwelO,stats=['median','count'])
+    statsW          = zonal_stats(shp,paths.raster_kwelW,stats=['median','count'])
+    shp             = pd.concat((shp, pd.DataFrame(statsO)), axis=1).rename(columns ={'median':'Kwel_oost','count':'Aoost'})
+    shp             = pd.concat((shp, pd.DataFrame(statsW)), axis=1).rename(columns ={'median':'Kwel_west','count':'Awest'})
+    
+    # conversions
+    shp['Area']      = shp.area
+    shp['Aoost']     = shp['Aoost'] * dx1*dx1
+    shp['Awest']     = shp['Awest'] * dx2*dx2
+    shp['ratio_oost']= shp['Aoost'] / shp.area
+    shp['ratio_west']= shp['Awest'] / shp.area
+    shp['Kwel_oost'] = np.where(shp['ratio_oost'] > 0.75, shp['Kwel_oost']*365, -99999)
+    shp['Kwel_west'] = np.where(shp['ratio_west'] > 0.75, shp['Kwel_west']*365, -99999)
+    shp['Kwel_oost'] = np.where((shp['ratio_oost'] <= 0.75) & (shp['ratio_west'] <= 0.75), -99999, shp['Kwel_oost'])    
+    shp['Kwel_west'] = np.where((shp['ratio_oost'] <= 0.75) & (shp['ratio_west'] <= 0.75), -99999, shp['Kwel_west'])    
+    shp              = shp.drop(['Area','Aoost', 'Awest','ratio_oost','ratio_west'], axis=1)
+    
+    # save temp file
+    shp.to_file(paths.shp_kwel) 
+    
+    return shp.replace(-99999,np.nan)
 
 def main(paths, months, years):
-    ''' Satellite data'''
+    ''' Satellite data: FEWS-WIS'''
     # input data
+    shp_afvoer = gpd.read_file(paths.shp_afvoer)
     shp_afwatr = gpd.read_file(paths.shp_afwatr)
-    shp_peil   = gpd.read_file(paths.shp_peil)
+    shp_peil   = gpd.read_file(paths.shp_peil).rename(columns ={'GPGIDENT':'CODE'})
     df_P       = pd.read_csv(paths.df_P, delimiter=',')
     df_E       = pd.read_csv(paths.df_E, delimiter=',')
     
     # format data
+    shp_afvoer.crs ='EPSG:28992'
+    shp_afwatr.crs ='EPSG:28992'    
+    shp_peil.crs   ='EPSG:28992'    
     df_P   = df_P.drop(0).drop(columns='GMT+1').astype(float)
     df_E   = df_E.drop(0).drop(columns='GMT+1').astype(float)
     
@@ -235,18 +279,45 @@ def main(paths, months, years):
     df_E.columns = ['CODE','Esat']
     
     # add values to shapefile
-    shp_sat   = shp_peil[['CODE','geometry']].merge(df_P[['CODE','Psat']], on='CODE', how='left')
-    shp_sat   = shp_sat.merge(df_E[['CODE','Esat']], on='CODE', how='left')
-    shp_sat['Qsat'] = (shp_sat['Psat'] - shp_sat['Esat'])/365
+    shp_sat_peil   = shp_peil[['CODE','geometry']].merge(df_P[['CODE','Psat']], on='CODE', how='left')
+    shp_sat_peil   = shp_sat_peil.merge(df_E[['CODE','Esat']], on='CODE', how='left')
+    
+    # weighted mean op afvoergebiedsniveau
+    cols                     = ['Psat','Esat']
+    shp_sat_afvoer           = shp_afvoer.copy()
+    shp_sat_afvoer['A_afvr'] = shp_sat_afvoer.area    
+    shp_sat_peil['C_peil']   = shp_sat_peil['CODE']
+    shp_sat_peil             = shp_sat_peil[['C_peil','Psat','Esat','geometry']]
+    df_is                    = gpd.overlay(shp_sat_peil, shp_sat_afvoer[['CODE','A_afvr','geometry']], how='intersection') 
+    df_is['A_peil']          = df_is.area
+    for c in cols: 
+        df_is[c]       = df_is[c] * df_is['A_peil']/df_is['A_afvr']    
+        df_c           = df_is.groupby(['CODE'])[[c]].sum() .reset_index()
+        shp_sat_afvoer = shp_sat_afvoer.merge(df_c[['CODE',c]], on='CODE', how='left')
+    
+    ''' Satellite data: Kwel'''
+    shp_sat_afvoer = get_kwel(paths, shp_sat_afvoer)
+    
+    # conversions
+    shp_sat_afvoer['Kwel_oost'] = np.round(shp_sat_afvoer['Kwel_oost'])
+    shp_sat_afvoer['Kwel_west'] = np.round(shp_sat_afvoer['Kwel_west'])
+    shp_sat_afvoer['Psat']      = np.round(shp_sat_afvoer['Psat'])
+    shp_sat_afvoer['Esat']      = np.round(shp_sat_afvoer['Esat'])
+    shp_sat_afvoer['Q_WB_O']    = np.round((shp_sat_afvoer['Psat'] + shp_sat_afvoer['Kwel_oost'] - shp_sat_afvoer['Esat']))
+    shp_sat_afvoer['Q_WB_W']    = np.round((shp_sat_afvoer['Psat'] + shp_sat_afvoer['Kwel_west'] - shp_sat_afvoer['Esat']))
+    
+    # shapefile opslaan
+    shp_sat_afvoer.to_file(paths.shp_sat)   
     
     '''HYDROMEDAH'''
     # shapefiles inlezen
     shp_line = gpd.read_file(paths.shp_RchSeg)
+    shp_line.crs ='EPSG:28992'
     shp_line.columns = [col.strip() for col in shp_line.columns]
     shp_line.index = shp_line['ID']
     shp_line.drop(['NAME', "TYPE", 'PARENTID', 'ID_FROM', 'ID_TO', 'USERID'], axis=1, inplace=True)
-    shp_afvoer= gpd.read_file(paths.shp_afvoer)
     shp_node  = gpd.read_file(paths.shp_node)
+    shp_node.crs ='EPSG:28992'
     shp_node.columns = [col.strip() for col in shp_node.columns]
     
     # Data inlezen 
@@ -270,7 +341,7 @@ def main(paths, months, years):
     # Statistiek berekenen
     sub_data = all_data[all_data['MONTH'].isin(months)]
     sub_data = all_data[all_data['YEAR'].isin(years)]
-    shp_HYDROMEDAH = add_statistic(shp_line, sub_data, name='Q_HYDROMEDAH')
+    shp_HYDROMEDAH = add_statistic(shp_line, sub_data, name='Q_HYDRMDH')
     
     # Data overzetten naar punten (spatial join)
     shp_HYDROMEDAH = shp_node.sjoin_nearest(shp_HYDROMEDAH, how="left", distance_col="Distances")
@@ -282,40 +353,31 @@ def main(paths, months, years):
         print(paths.shp_HYDROMEDAH)
         shp_HYDROMEDAH.to_file(paths.shp_HYDROMEDAH)
     
-    # convert based on area afwateringsgebied (m3/s -> mm/d)
+    # convert based on area afwateringsgebied (m3/s -> mm/yr)
     shp_afwatr['area']              = shp_afwatr.area
     shp_HYDROMEDAH['CODE']          = [i.replace('drain','') for i in shp_HYDROMEDAH.ID_left.values]    
     shp_HYDROMEDAH                  = shp_HYDROMEDAH.merge(shp_afwatr[['CODE','area']], on='CODE', how='left')
-    shp_HYDROMEDAH['Q_HYDROMEDAH']  = shp_HYDROMEDAH['Q_HYDROMEDAH']/shp_HYDROMEDAH['area'] * 1e3 * 3600*24
+    shp_HYDROMEDAH['Q_HYDRMDH']     = np.round(shp_HYDROMEDAH['Q_HYDRMDH']/shp_HYDROMEDAH['area'] * 1e3 * 3600*24*365,1)
     
-    
-    # shapefiles opslaan
-    shp_sat.to_file(paths.shp_sat)    
+    # shapefile opslaan
     shp_HYDROMEDAH.to_file(paths.shp_HYDROMEDAH)    
    
-    # Data overzetten naar shp_peil (spatial join)
-    shp_peil.crs       ='EPSG:28992'
-    shp_HYDROMEDAH.crs ='EPSG:28992'
-    shp_HYDROMEDAH     = shp_HYDROMEDAH.rename(columns ={'ID_left':'ID1','ID_right':'ID2'})[['ID1','ID2','Q_HYDROMEDAH','geometry']]
-    shp_HYDROMEDAH     = gpd.sjoin(shp_HYDROMEDAH, shp_peil[['CODE','geometry']], how="left")
-    shp_HYDROMEDAH     = shp_HYDROMEDAH.groupby('CODE')['Q_HYDROMEDAH'].agg(['mean']).reset_index()
-    shp_HYDROMEDAH.columns = ['CODE','Q_HYDROMEDAH']
-    
-    # tijdelijk handmatig bestand hier gebruikt ivm verouderde peilgebieden in WIS
-    shp_sat  = gpd.read_file(paths.shp_temp) 
-    shp_sat['Qsat'] = shp_sat['Qsat'] / 365
+    # Data overzetten naar shp_afvoer (spatial join)    
+    shp_HYDROMEDAH     = shp_HYDROMEDAH.rename(columns ={'ID_left':'ID1','ID_right':'ID2'})[['ID1','ID2','Q_HYDRMDH','geometry']]
+    shp_HYDROMEDAH     = gpd.sjoin(shp_HYDROMEDAH, shp_afvoer[['CODE','geometry']], how="left")
+    shp_HYDROMEDAH     = shp_HYDROMEDAH.groupby('CODE')['Q_HYDRMDH'].agg(['mean']).reset_index()
+    shp_HYDROMEDAH.columns = ['CODE','Q_HYDRMDH']
     
     '''Samenvoegen & verschil berekenen'''
-    shp_comp = shp_peil.merge(shp_sat.drop(columns='geometry'), on='CODE', how='left')
-    shp_comp = shp_comp.merge(shp_HYDROMEDAH, on='CODE', how='left')
-    shp_comp['dQ'] = np.round(shp_comp['Qsat'] - shp_comp['Q_HYDROMEDAH'],1)
-    
-    # print(np.min(shp_comp.dQ),np.max(shp_comp.dQ))
+    shp_comp = shp_sat_afvoer.merge(shp_HYDROMEDAH, on='CODE', how='left')
+    shp_comp['dQ_O'] = np.round((shp_comp['Q_HYDRMDH'] - shp_comp['Q_WB_O'])/shp_comp['Q_WB_O'])
+    shp_comp['dQ_W'] = np.round((shp_comp['Q_HYDRMDH'] - shp_comp['Q_WB_W'])/shp_comp['Q_WB_W'])
+     
     # save file    
     shp_comp.to_file(paths.shp_comp)    
-    
-    
+    # shp_comp = gpd.read_file(paths.shp_comp)
     # Data plotten
-    png(paths,shp_afvoer,shp_comp)
-    bokeh(paths, shp_afvoer,shp_comp)
+    bokeh_fig(paths, shp_afvoer,shp_comp, 'oost')
+    bokeh_fig(paths, shp_afvoer,shp_comp, 'west')
+    
     
