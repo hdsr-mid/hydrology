@@ -1,5 +1,8 @@
 Updates:
 
+16-12-2024:
+- functies_droog_profiel.py	Nieuwe filter: Profielen worden verwijderd als hun lijnen uit meerdere stukken bestaan (teken dat het meerdere insteekvlakken dekt). Lijnen 267 - 275 zijn toegevoegd.
+
 14-11-2024:
 - functies_droog_profiel.py	Nieuwe filter: De hydro object code van het meetpunt het dichtst bij een hydro object moet gelijk zijn aan de code van het insteekvlak. Im sommige gevallen ligt het profiel namelijk net bij een ander hydroobject (voorbeeld profiel 1896076). Dit is toegevoegd in lijnen 56 - 65 en 98 - 106
 - functies_droog_profiel.py	De lengte van de ge-extrapoleerde lijn was oorspronkelijk ook afhankelijk van de breedte van het gemeten profiel. In sommige gevallen was deze breedte significant kleiner dan de breedte o.b.v. de insteek. Daarom is dit verwijderd in lijnen 173 - 177 (voorbeeld profiel 1893856).

@@ -263,6 +263,18 @@ def clip_line_by_polygon(paths):
     gdf_multi_joined  = gpd.sjoin(gdf_multi,shp_HO, how = 'left')
     gdf_multi_joined  = gdf_multi_joined[~gdf_multi_joined['index_right'].isna()]
     gdf_multi_joined  = gdf_multi_joined[gdf_multi_joined['HO_ID']==gdf_multi_joined['CODE']]
+    
+    # Remove profiels still consisting of multiple lines
+    names             = gdf_multi_joined['profielmet'].drop_duplicates()
+    gdf_multi_joined  = gdf_multi_joined.drop_duplicates(subset=['profielmet'],keep=False)
+    names             = [n for n in names if n not in gdf_multi_joined['profielmet'].values]
+    with open(paths.txt_dropped, 'a') as outfile:
+        outfile.write('Profiles dropped because they consist of multiple lines (e.g. at a bend):\n')
+        outfile.write(str(names))
+        outfile.write('\n')
+    print(len(names), ' of ',len(names), ' profiles are dropped because they consist of multiple lines (e.g. at a bend). Check ', paths.txt_dropped, ' for the ID codes.')
+    
+    # merge remaining profiles
     gdf               = gpd.GeoDataFrame(pd.concat([gdf_single, gdf_multi_joined], ignore_index=True))
     
     # Save to file
