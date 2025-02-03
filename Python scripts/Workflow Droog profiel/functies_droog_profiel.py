@@ -25,7 +25,8 @@ def format_WIT(paths):
     # format shapefile
     gdf['punttype']   = [p.replace('_','') for p in gdf['punt_typ_i'].values]
     gdf['profielmet'] = gdf['pm_id'].astype(str)    
-    gdf               = gdf[['profielmet','punttype','afstand','slibhoogte','X','Y','geometry']]
+    gdf['datum']      = [str(s).split('_')[-1] for s in gdf['pl_ids'].values]
+    gdf               = gdf[['profielmet','datum','punttype','afstand','slibhoogte','X','Y','geometry']]
     
     # add Hydro Object code
     gdf = add_HO_ID(paths, gdf)
