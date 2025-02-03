@@ -1,5 +1,8 @@
 Updates:
 
+30-01-2025:
+- functies_droog_profiel.py	Datum WIT meting meenemen in de output shapefile (lijnen 28-29)
+
 16-12-2024:
 - functies_droog_profiel.py	Nieuwe filter: Profielen worden verwijderd als hun lijnen uit meerdere stukken bestaan (teken dat het meerdere insteekvlakken dekt). Lijnen 267 - 275 zijn toegevoegd.
 
