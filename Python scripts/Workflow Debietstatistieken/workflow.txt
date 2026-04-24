@@ -1,0 +1,23 @@
+Workflow
+
+0. Grondwater model runnen
+1. Lateralen genereren			1_generate_lateralsources_bc_from_simgro_annually.py	-> per seizoen & jaar een .bc bestand maken
+2. DHydro model voorbereiden
+- dflowfm\DFM_boundaryconditions1d.bc	handmatig 						-> aanpassen naar zomer/winterpeil voor 1 locatie -> bij 112000.000000_454000.000000
+- dflowfm\FlowFM_structures.bc 		2a_edit_strucs_bc.py					-> aanpassen naar zomer/winterpeil
+- dflowfm\DFM.mdu			handmatig 						-> simulatieperiode aanpassen
+- rr\default.bui			handmatig						-> tijdserie aanpassen (incl. duur tijdseries!); o.b.v. De Bilt (in uren)
+- rr\default.evp			2b_prep_evap.py						-> tijdserie aanpassen
+- rr\DELFT_3B				handmatig 						-> simulatieperiode aanpassen
+- rtc\rtcRuntimeConfig.xml		handmatig						-> simulatieperiode aanpassen
+- rtc\timeseries_import.xml 		2c_edit_timeseries_xml.py				-> aanpassen naar zomer/winterpeil
+3. Model scenarios maken (& runnen)	3_copy_files.py						-> 20 modellen (10 jaar x 2 seizoenen)
+- periode handmatig aanpassen voor winter 2023 (einde 31 dec ipv in 2024)
+4. Model output verwerken
+- Bestanden samenvoegen			4a_merge_netcdf.py					-> output: netcdf/*.nc
+- Debiet statistieken berekenen		4b_Qstats.py						-> output: gpkg/*.gpkg
+- Debiet statistieken plotten		4c_plot_Qstats_html.py					-> output: html/*.html
+- Waterstand statistieken berekenen	4d_WLstat.py						-> output: gpkg/*.gpkg
+- Waterstand statistieken plotten	4e_plot_WLstats_png.py					-> output: *.png
+					4f_plot_WLstats_html.py					-> output: html/*.html
+- Laterals plotten			4g_plot_lats.py, function_lats.py			-> output: html/*.html

@@ -1,0 +1,7 @@
+Stappen voor het knippen van een model achter de schermen:
+1. clip netcdf (-> python)
+2. clip ini bestanden (-> python)
+3. mdu en initialFields bestand aanpassen
+4. valideer model en exporteer dimr bestand (-> DHydro)
+5. run model
+
