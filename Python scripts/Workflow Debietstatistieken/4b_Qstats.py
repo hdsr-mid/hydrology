@@ -4,6 +4,9 @@
 @author     : MaaS-user, Petra Hulsman
 Last update : 13/04/2026
 virtual environment used: geo-env
+
+Debiets statistieken berekenen o.b.v. absolute waarden(!)
+
 """
 
 import os
@@ -17,9 +20,11 @@ import warnings
 warnings.filterwarnings("ignore")
 
 class general():
-    path_all            = r'D:/workingdir/3_Output/netcdf/DFM_all_Debiet.nc'
-    shp_watergangen     = r'D:/workingdir/1_InputData/Branches.gpkg'
-    path_Qstats         = r'D:/workingdir/3_Output/gpkg/Debietstatistieken.gpkg'
+    root              = r'H:/Team_Kennis_OSA/Hydrologische_Informatieproducten/4. Debietstatistieken (30042026)'
+    path_all          = root + '/03_Output/netcdf/DFM_all_Debiet.nc'
+    shp_watergangen   = root + '/01_Input/Branches.gpkg'
+    path_Qstats1      = root + '/03_Output/gpkg/Debietstatistieken.gpkg'
+    path_Qstats2      = root + '/03_Output/gpkg/Debietstatistieken.shp'
     
 def getLineCoords(row, geom, coord_type):
     if isinstance(row[geom], MultiLineString):
@@ -35,6 +40,7 @@ def getLineCoords(row, geom, coord_type):
         
 def fun_Qstats(xds):
     gdf = gpd.read_file(general.shp_watergangen)
+    gdf['geometry'] = gdf['geometry'].force_2d()
     gdf['CODE'] = np.array([i.strip().replace('hdsr_wa_','') for i in gdf['Name'].values])
     gdf = gdf.drop(["Name"], axis=1)
     
@@ -43,14 +49,15 @@ def fun_Qstats(xds):
     idx2 = np.array([i for i in range(0,len(gdf)) if gdf.CODE.values[i] not in ID])
     gdf1 = gdf.iloc[idx1]
     gdf2 = gdf.iloc[idx2]
-    order = np.array([int(np.where(g==ID)[0]) for g in gdf1.CODE.values])
+    order = np.array([int(np.where(g==ID)[0][0]) for g in gdf1.CODE.values])
     
     # get sumer days
     months = [pd.to_datetime(t).month for t in xds.time.values]
     summer = np.array([i for i in range(0,len(months)) if months[i] in [5,6,7,8,9]])
     
     # get statistics
-    var_dat       = 'mesh1d_q1' # Q
+    var_dat        = 'mesh1d_q1' # Q
+    xds[var_dat]   = abs(xds[var_dat])
     gdf1['Q_gem']  = xds[var_dat].mean(dim='time').values[order]
     gdf1['Q_T1']   = xds[var_dat].groupby("time.year").max("time").median("year").values[order] # .isel(time=summer)
     gdf2['Q_gem']  = -999
@@ -71,7 +78,9 @@ def fun_export_shp(gdf):
             gdf[v]  = np.round(gdf[v],2)
         
     # save
-    gdf.to_file(general.path_Qstats)
+    gdf.crs    = 'EPSG:28992'
+    gdf.to_file(general.path_Qstats1)
+    gdf.to_file(general.path_Qstats2)
 
 
 

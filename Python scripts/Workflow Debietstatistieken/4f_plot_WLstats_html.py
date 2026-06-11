@@ -28,11 +28,12 @@ warnings.filterwarnings("ignore")
 
 
 class general():
-    path_all            = r'D:/workingdir/3_Output/netcdf/DFM_all_Waterstand.nc'
-    outdir              = r'D:/workingdir/3_Output'
-    path_WLstats        = r'D:/workingdir/3_Output/gpkg/Waterstandstatistieken.gpkg'
-    shp_afvoergebieden  = r'D:/workingdir/1_InputData/Afvoergebieden_30032026.gpkg'
-    shp_watergangen     = r'D:/workingdir/1_InputData/Branches.gpkg'
+    root = r'H:/Team_Kennis_OSA/Hydrologische_Informatieproducten/4. Debietstatistieken (30042026)'
+    path_all            = root + '/03_Output/netcdf/DFM_all_Waterstand.nc'
+    outdir              = root + '/03_Output'
+    path_WLstats        = root + '/03_Output/gpkg/Waterstandstatistieken.gpkg'
+    shp_afvoergebieden  = root + '/01_Input/Afvoergebieden_30032026.gpkg'
+    shp_watergangen     = root + '/01_Input/Branches.gpkg'
    
 def getLineCoords(row, geom, coord_type):
     if isinstance(row[geom], MultiLineString):
@@ -55,7 +56,7 @@ def fun_create_dict(gdf_sel,xds):
     time              = [pd.to_datetime(t) for t in xds.time.values]
     IDs               = np.array([i.strip().replace('hdsr_wa_','') for i in xds['mesh1d_node_id'].values.astype(str)])
     for iD in gdf_sel.CODE.values:    
-        idx_mesh1d = int(np.where(iD==IDs)[0])
+        idx_mesh1d = int(np.where(iD==IDs)[0][0])
         data  = xds[var_dat].sel(mesh1d_nNodes=idx_mesh1d).values
         data  = np.round(data,2)
     
@@ -100,9 +101,9 @@ def fun_plot_html(ig, xds,gdf, shp_afvoer):
     color_bar = ColorBar(color_mapper=color,title='WL [m]')
     p1.add_layout(color_bar, 'right')
     tooltips = [('ID', '@CODE'),
-                ('T1', '@WL_T1{0.01}'+'m3/s'),
-                ('P10', '@WL_p10{0.01}'+'m3/s'),
-                ('P90', '@WL_p90{0.01}'+'m3/s')]
+                ('T1', '@WL_T1{0.01}'+'m'),
+                ('P10', '@WL_p10{0.01}'+'m'),
+                ('P90', '@WL_p90{0.01}'+'m')]
     p1.add_tools(HoverTool(renderers=[map_line], tooltips=tooltips))  
     
     # Tapping...

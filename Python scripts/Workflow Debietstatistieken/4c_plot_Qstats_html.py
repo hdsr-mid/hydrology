@@ -24,10 +24,12 @@ import warnings
 warnings.filterwarnings("ignore")
 
 class general():
-    path_all            = r'D:/workingdir/3_Output/netcdf/DFM_all_Debiet.nc'
-    outdir              = r'D:/workingdir/3_Output'
-    shp_afvoergebieden  = r'D:/workingdir/1_InputData/Afvoergebieden_30032026.gpkg'
-    path_Qstats         = r'D:/workingdir/3_Output/gpkg/Debietstatistieken.gpkg'
+    root               = r'H:/Team_Kennis_OSA/Hydrologische_Informatieproducten/4. Debietstatistieken (30042026)'
+    path_all           = root + '/03_Output/netcdf/DFM_all_Debiet.nc'
+    outdir             = root + '/03_Output'
+    shp_afvoergebieden = root + '/01_Input/Afvoergebieden_30032026.gpkg'
+    path_Qstats        = root + '/03_Output/gpkg/Debietstatistieken.gpkg'
+    
     
 def getLineCoords(row, geom, coord_type):
     if isinstance(row[geom], MultiLineString):
@@ -44,7 +46,7 @@ def getLineCoords(row, geom, coord_type):
 def fun_create_dict(gdf_sel,xds):
     # Create timeseries dictionary
     src_dict          = {}
-    var               = ['x','y']
+    var               = ['x','y','yabs']
     var_dat           = 'mesh1d_q1' # Q
     time              = [pd.to_datetime(t) for t in xds.time.values]
     IDs               = np.array([i.decode().strip() for i in xds['network_branch_id'].values])
@@ -54,7 +56,7 @@ def fun_create_dict(gdf_sel,xds):
         data  = xds[var_dat].sel(mesh1d_edge_branch=idx_mesh1d).mean(dim='mesh1d_edge_branch').values
         data  = np.round(data,2)
     
-        data  = [time, data]
+        data  = [time, data, abs(data)]
                      
         # Create dictionary
         src_dict[iD] = dict(zip(var, data))
@@ -98,33 +100,33 @@ def fun_plot_html(ig, xds,gdf, shp_afvoer):
                 
     p1.add_tools(HoverTool(renderers=[map_line], tooltips=tooltips))  
     
-    # Tapping...
-    #start with initial state for columndatasource
-    ID_0  = list(src_dict.keys())[0]
-    src   = ColumnDataSource(data=src_dict[ID_0])
-    p3    = bokeh.plotting.figure(title=ID_0, height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
-    glyph = Line(x="x", y='y', line_color="black")
-    p3.add_glyph(src, glyph)
-    p3.add_glyph(src, Line(x="x", y='T1', line_color="red"))
-    p3.add_glyph(src, Line(x="x", y='10%', line_color="blue", line_dash = 'dotted'))
-    p3.add_glyph(src, Line(x="x", y='90%', line_color="blue", line_dash = 'dotted'))
-    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['y'][0], line_color="black",legend_label ='Q model')
-    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['T1'][0], line_color="red",legend_label ='T1')
-    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['10%'][0], line_color="blue",legend_label ='10%')
-    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['90%'][0], line_color="blue",legend_label ='90%')
-    p3.legend.location = "top_left"
-    
     #create the TapTool, add it to the bar figure, and enable it on initialization
     tap = TapTool(renderers=[map_line])
     p1.add_tools(tap)
     p1.toolbar.active_tap = tap
     
-    cb = CustomJS(args=dict(map_source=map_source,src_dict=src_dict,src=src,p3=p3,glyph=glyph)
+    # Tapping...
+    #start with initial state for columndatasource
+    ID_0  = list(src_dict.keys())[0]
+    src   = ColumnDataSource(data=src_dict[ID_0])
+    p3    = bokeh.plotting.figure(title=ID_0, height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
+    glyph = Line(x="x", y='yabs', line_color="black")
+    p3.add_glyph(src, glyph)
+    p3.add_glyph(src, Line(x="x", y='T1', line_color="red"))
+    p3.add_glyph(src, Line(x="x", y='10%', line_color="blue", line_dash = 'dotted'))
+    p3.add_glyph(src, Line(x="x", y='90%', line_color="blue", line_dash = 'dotted'))
+    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['yabs'][0], line_color="black", line_width=4,legend_label ='Model resultaat (absolute waarden)')
+    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['T1'][0], line_color="red", line_width=4,legend_label ='T1')
+    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['10%'][0], line_color="blue", line_width=4,legend_label ='10%')
+    p3.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['90%'][0], line_color="blue", line_width=4,legend_label ='90%')
+    p3.legend.location = "top_left"
+    
+    cb = CustomJS(args=dict(map_source=map_source,src_dict=src_dict,src=src,p=p3,glyph=glyph)
                   ,code='''
                   var sel_bar_i = map_source.selected.indices[0]
                   var area_id = map_source.data['CODE'][sel_bar_i]
-                  p3.title.text= area_id
-                  p3.change.emit()
+                  p.title.text= area_id
+                  p.change.emit()
                   src.data = src_dict[area_id]
                   src.change.emit()
                   ''')
@@ -132,7 +134,31 @@ def fun_plot_html(ig, xds,gdf, shp_afvoer):
     #apply this callback to trigger whenever the indices of the selected glyph change
     map_source.selected.js_on_change('indices',cb)             
     
-    grid = layout([[p1],[p3,],])
+    #start with initial state for columndatasource
+    ID_0  = list(src_dict.keys())[0]
+    src   = ColumnDataSource(data=src_dict[ID_0])
+    p4    = bokeh.plotting.figure(title=ID_0, height=300, width=1400, x_axis_type='datetime', x_axis_label="time",y_axis_label="Q [m3/s]") # , y_range=(0,1)
+    glyph = Line(x="x", y='yabs', line_color="black")
+    p4.add_glyph(src, glyph)    
+    p4.add_glyph(src, Line(x="x", y='y', line_color="green"))
+    p4.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['yabs'][0], line_color="black", line_width=4,legend_label ='Model resultaat (absolute waarden)')
+    p4.line(x=src_dict[ID_0]['x'][0],y=src_dict[ID_0]['y'][0], line_color="green", line_width=4,legend_label ='Model resultaat (daadwerkelijke waarden)')
+    p4.legend.location = "top_left"
+    
+    cb = CustomJS(args=dict(map_source=map_source,src_dict=src_dict,src=src,p=p4,glyph=glyph)
+                  ,code='''
+                  var sel_bar_i = map_source.selected.indices[0]
+                  var area_id = map_source.data['CODE'][sel_bar_i]
+                  p.title.text= area_id
+                  p.change.emit()
+                  src.data = src_dict[area_id]
+                  src.change.emit()
+                  ''')
+    
+    #apply this callback to trigger whenever the indices of the selected glyph change
+    map_source.selected.js_on_change('indices',cb)   
+    
+    grid = layout([[p1],[p3,],[p4,],])
     bokeh.plotting.show(grid, notebook_handle=True)
     bokeh.plotting.save(grid,os.path.join(general.outdir,'html','Debiet', str(ig) + '_fig_Q_' + CODE + '_' + NAAM+'.html'))
     

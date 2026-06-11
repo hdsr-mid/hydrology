@@ -2,7 +2,7 @@
 """
 
 @author     : MaaS-user, Petra Hulsman
-Last update : 13/04/2026
+Last update : 05/05/2026
 virtual environment used: geo-env
 """
 
@@ -31,7 +31,7 @@ def get_base_data():
 
 def get_WL_data():
     seasons = ['zomer','winter']
-    for y in range(2014,2020):
+    for y in range(2014,2024):
         for season in seasons:
             model     = season + str(y)
             if season == 'zomer':
@@ -54,7 +54,7 @@ def get_WL_data():
 
 def get_Q_data():
     seasons = ['zomer','winter']
-    for y in range(2014,2020):
+    for y in range(2014,2024):
         for season in seasons:
             model     = season + str(y)
             if season == 'zomer':

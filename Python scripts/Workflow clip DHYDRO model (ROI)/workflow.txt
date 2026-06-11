@@ -1,3 +1,5 @@
+Doel: rivieren gedeelte uit het ROI model clippen
+
 Stappen voor het knippen van een model achter de schermen:
 1. clip netcdf (-> python)
 2. clip ini bestanden (-> python)

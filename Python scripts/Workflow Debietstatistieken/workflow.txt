@@ -21,3 +21,7 @@ Workflow
 - Waterstand statistieken plotten	4e_plot_WLstats_png.py					-> output: *.png
 					4f_plot_WLstats_html.py					-> output: html/*.html
 - Laterals plotten			4g_plot_lats.py, function_lats.py			-> output: html/*.html
+
+Aanname:
+- Basis model is accuraat
+- Stroomrichting is correct gedefineerd tenzij Q_50p < 0, dan is Q vermenigvuldigd met -1
