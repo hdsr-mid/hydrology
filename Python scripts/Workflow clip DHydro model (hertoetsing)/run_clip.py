@@ -8,11 +8,15 @@ Doel:
     
     
 Stappen:
-    1. clip netcdf
-    2. clip crsloc.ini o.b.v. netcdf
-    3. clip crsdef.ini o.b.v. crsloc.ini
-    4. clip overige ini bestanden o.b.v. netcdf
-    
+- Clip branches-shapefile o.b.v. afvoergebied-polygoon (shapefile)
+- Clip dflowfm/network.nc o.b.v. geclipte branches
+- Clip bijbehorende kuntwerken, profiel info, laterals, observation points, boundary conditions, initial conditions
+- Clip bedlevel.xyz en hoogtelijnen (.pliz) o.b.v. box-coordinaten afgeleid van het afvoergebied-polygoon (shapefile)
+- Clip tif o.b.v. polygon
+- Clip RR-knopen
+- Clip RTC-knopen/sturing
+- Verwijder overbodige koppelingen in dimr
+
     
 Note: 
     In DFM_lateral_sources.bc staat de eenheid m3/s (met superscript). 
@@ -51,17 +55,8 @@ class general():
     # ref_model = 'Model_1D'
     
     # definitie interesse gebied o.b.v. afvoergebied code
-    # clip_code      = 'AFVGEB0057' # Molenvliet
-    # naam           = 'Molenvliet' # dit wordt gebruikt in de foldernaam van het geklipte model
-    
-    # clip_code      = 'AFVGEB0012' # DeTol
-    # naam           = 'DeTol'
-    
-    # clip_code      = 'AFVGEB0035'
-    # naam           = 'KrommeRijn'
-    
-    clip_code      = 'AFVGEB0040'
-    naam           = 'ARK'
+    clip_code      = 'AFVGEB0012' # DeTol
+    naam           = 'DeTol'
     
     buffer = 1 # [m] kies hier hoeveel buffer je om je gebied wilt hebben
 

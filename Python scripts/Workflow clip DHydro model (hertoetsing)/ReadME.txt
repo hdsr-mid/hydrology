@@ -13,6 +13,7 @@ Stappen:
 - Verwijder overbodige koppelingen in dimr
 - HANDMATIG in GUI: 
     - pas boundary conditions aan
+    - controleer RTC-sturing (ontbreekt er iets?)
 
 
 Aanname:
@@ -20,6 +21,9 @@ Aanname:
 
 
 Een paar codes...
+clip_code      = 'AFVGEB0057'
+naam           = 'Molenvliet' 
+    
 clip_code      = 'AFVGEB0035'
 naam           = 'KrommeRijn'
 
